@@ -1,19 +1,21 @@
-from fastapi.testclient import TestClient
+import fastapi.testclient
 
-from careshield.api import app
+import careshield.interfaces.api as api
 
 
 def test_health_endpoint() -> None:
-    client = TestClient(app)
-    response = client.get("/health")
+    """Verify the API health endpoint."""
+    client = fastapi.testclient.TestClient(app=api.app)
+    response = client.get(url="/health")
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
 
 
 def test_ask_endpoint() -> None:
-    client = TestClient(app)
+    """Verify built-in policy Q&A through FastAPI."""
+    client = fastapi.testclient.TestClient(app=api.app)
     response = client.post(
-        "/ask",
+        url="/ask",
         json={
             "role": "vendor_manager",
             "question": "What should be redacted before sharing data with a vendor?",
@@ -27,14 +29,15 @@ def test_ask_endpoint() -> None:
 
 
 def test_document_analyze_endpoint() -> None:
-    client = TestClient(app)
+    """Verify upload analysis through FastAPI."""
+    client = fastapi.testclient.TestClient(app=api.app)
     content = (
         "External sharing requires approved de-identification. Patient Jane Example, "
         "MRN MRN-000-EXAMPLE, and diagnosis Type 2 diabetes must be redacted before "
         "vendor sharing. Use the approved model gateway and keep audit traces."
     )
     response = client.post(
-        "/documents/analyze",
+        url="/documents/analyze",
         data={
             "role": "nurse",
             "question": "What must be redacted before vendor sharing?",
@@ -53,9 +56,10 @@ def test_document_analyze_endpoint() -> None:
 
 
 def test_document_analyze_rejects_unsupported_file_type() -> None:
-    client = TestClient(app)
+    """Verify unsupported uploads return a clear validation error."""
+    client = fastapi.testclient.TestClient(app=api.app)
     response = client.post(
-        "/documents/analyze",
+        url="/documents/analyze",
         data={
             "role": "nurse",
             "question": "Can this file be analyzed?",

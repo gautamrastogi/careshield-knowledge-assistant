@@ -13,7 +13,7 @@ demo-doc:
 	uv run careshield analyze-doc --file examples/synthetic-care-report.md --role nurse --question "What must be redacted before vendor sharing?"
 
 api:
-	uv run uvicorn careshield.api:app --reload --host 127.0.0.1 --port 8088
+	uv run uvicorn careshield.interfaces.api:app --reload --host 127.0.0.1 --port 8088
 
 docker-build:
 	docker build -t careshield-knowledge-assistant .

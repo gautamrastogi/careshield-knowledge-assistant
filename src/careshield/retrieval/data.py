@@ -1,14 +1,12 @@
-from __future__ import annotations
-
-from careshield.schemas import Document, Role, Sensitivity
+import careshield.contracts.schemas as schemas
 
 
 DOCUMENTS = [
-    Document(
+    schemas.Document(
         id="clinical-access-policy",
         title="Clinical Access Policy",
-        sensitivity=Sensitivity.clinical,
-        allowed_roles=[Role.doctor, Role.nurse, Role.compliance_officer],
+        sensitivity=schemas.Sensitivity.clinical,
+        allowed_roles=[schemas.Role.doctor, schemas.Role.nurse, schemas.Role.compliance_officer],
         tags=["clinical", "discharge", "care-team", "minimum-necessary"],
         body=(
             "Doctors and nurses may access discharge notes only for active patient care. "
@@ -16,11 +14,16 @@ DOCUMENTS = [
             "de-identified, minimum-necessary, and approved by compliance."
         ),
     ),
-    Document(
+    schemas.Document(
         id="patient-summary-redaction-guide",
         title="Patient Summary Redaction Guide",
-        sensitivity=Sensitivity.internal,
-        allowed_roles=[Role.doctor, Role.nurse, Role.vendor_manager, Role.compliance_officer],
+        sensitivity=schemas.Sensitivity.internal,
+        allowed_roles=[
+            schemas.Role.doctor,
+            schemas.Role.nurse,
+            schemas.Role.vendor_manager,
+            schemas.Role.compliance_officer,
+        ],
         tags=["redaction", "phi", "pii", "vendor-sharing"],
         body=(
             "Before a patient summary is sent outside the organization, redact patient name, "
@@ -30,11 +33,11 @@ DOCUMENTS = [
             "Insurance ID INS-000-EXAMPLE, diagnosis Type 2 diabetes."
         ),
     ),
-    Document(
+    schemas.Document(
         id="billing-data-policy",
         title="Billing Data Policy",
-        sensitivity=Sensitivity.billing,
-        allowed_roles=[Role.billing_analyst, Role.compliance_officer],
+        sensitivity=schemas.Sensitivity.billing,
+        allowed_roles=[schemas.Role.billing_analyst, schemas.Role.compliance_officer],
         tags=["billing", "insurance", "claims", "payment"],
         body=(
             "Billing analysts may access insurance identifiers and claim status for payment "
@@ -42,11 +45,11 @@ DOCUMENTS = [
             "approves a specific investigation."
         ),
     ),
-    Document(
+    schemas.Document(
         id="vendor-data-sharing-policy",
         title="Vendor Data Sharing Policy",
-        sensitivity=Sensitivity.internal,
-        allowed_roles=[Role.vendor_manager, Role.compliance_officer],
+        sensitivity=schemas.Sensitivity.internal,
+        allowed_roles=[schemas.Role.vendor_manager, schemas.Role.compliance_officer],
         tags=["vendor", "sharing", "approval", "de-identification"],
         body=(
             "Vendor managers may coordinate approved vendor data exchanges. External sharing "
@@ -54,11 +57,15 @@ DOCUMENTS = [
             "an audit trail. Raw PHI must not be sent to vendors."
         ),
     ),
-    Document(
+    schemas.Document(
         id="vendor-safe-summary",
         title="Vendor Safe Summary",
-        sensitivity=Sensitivity.public,
-        allowed_roles=[Role.external_vendor, Role.vendor_manager, Role.compliance_officer],
+        sensitivity=schemas.Sensitivity.public,
+        allowed_roles=[
+            schemas.Role.external_vendor,
+            schemas.Role.vendor_manager,
+            schemas.Role.compliance_officer,
+        ],
         tags=["vendor", "public", "safe-summary"],
         body=(
             "External vendors may receive only approved, de-identified, minimum-necessary "
@@ -66,16 +73,16 @@ DOCUMENTS = [
             "insurance identifiers, and diagnosis details are not allowed in vendor-facing data."
         ),
     ),
-    Document(
+    schemas.Document(
         id="model-use-policy",
         title="Model Use Policy",
-        sensitivity=Sensitivity.internal,
+        sensitivity=schemas.Sensitivity.internal,
         allowed_roles=[
-            Role.doctor,
-            Role.nurse,
-            Role.billing_analyst,
-            Role.vendor_manager,
-            Role.compliance_officer,
+            schemas.Role.doctor,
+            schemas.Role.nurse,
+            schemas.Role.billing_analyst,
+            schemas.Role.vendor_manager,
+            schemas.Role.compliance_officer,
         ],
         tags=["genai", "model-gateway", "public-api", "approved-provider"],
         body=(

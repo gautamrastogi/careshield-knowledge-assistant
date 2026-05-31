@@ -1,42 +1,41 @@
-from docx import Document as DocxDocument
+import pathlib
+
+import docx
 import pytest
 
-from careshield.ingestion import (
-    DocumentParseError,
-    build_documents_from_text,
-    chunk_text,
-    parse_document_bytes,
-    parse_document_file,
-)
-from careshield.schemas import Role, Sensitivity
+import careshield.contracts.schemas as schemas
+import careshield.retrieval.ingestion as ingestion
 
 
 def test_parse_text_document_bytes() -> None:
-    parsed = parse_document_bytes(
-        b"Clinical report says vendor sharing requires redaction and approval.",
-        "report.txt",
+    """Verify text parsing."""
+    parsed = ingestion.parse_document_bytes(
+        content=b"Clinical report says vendor sharing requires redaction and approval.",
+        source_name="report.txt",
     )
     assert parsed.parser == "utf8-text"
     assert "vendor sharing" in parsed.text
 
 
-def test_parse_docx_document_file(tmp_path) -> None:
+def test_parse_docx_document_file(tmp_path: pathlib.Path) -> None:
+    """Verify Word parsing."""
     path = tmp_path / "care-report.docx"
-    document = DocxDocument()
+    document = docx.Document()
     document.add_paragraph("Clinical report section.")
     document.add_paragraph("Vendor sharing requires de-identification and audit trail.")
-    document.save(path)
+    document.save(str(path))
 
-    parsed = parse_document_file(path)
+    parsed = ingestion.parse_document_file(path=path)
 
     assert parsed.parser == "python-docx"
     assert "Vendor sharing requires de-identification" in parsed.text
 
 
 def test_parse_pdf_document_bytes() -> None:
-    parsed = parse_document_bytes(
-        _minimal_pdf_bytes("Vendor sharing requires redaction and compliance approval."),
-        "care-report.pdf",
+    """Verify PDF parsing."""
+    parsed = ingestion.parse_document_bytes(
+        content=_minimal_pdf_bytes(text="Vendor sharing requires redaction and compliance approval."),
+        source_name="care-report.pdf",
     )
 
     assert parsed.parser == "pypdf"
@@ -44,28 +43,39 @@ def test_parse_pdf_document_bytes() -> None:
 
 
 def test_unsupported_document_type_is_rejected() -> None:
-    with pytest.raises(DocumentParseError):
-        parse_document_bytes(b"hello world", "report.csv")
+    """Verify unsupported parser types fail clearly."""
+    with pytest.raises(expected_exception=ingestion.DocumentParseError):
+        ingestion.parse_document_bytes(content=b"hello world", source_name="report.csv")
 
 
 def test_chunking_and_document_building_preserve_policy_metadata() -> None:
-    chunks = chunk_text(" ".join(["redaction"] * 220), max_words=50, overlap_words=10)
-    documents = build_documents_from_text(
-        "Clinical report requires redaction before external sharing. " * 20,
+    """Verify chunks keep sensitivity and role metadata."""
+    chunks = ingestion.chunk_text(
+        text=" ".join(["redaction"] * 220),
+        max_words=50,
+        overlap_words=10,
+    )
+    documents = ingestion.build_documents_from_text(
+        text="Clinical report requires redaction before external sharing. " * 20,
         source_name="care-report.md",
-        sensitivity=Sensitivity.clinical,
+        sensitivity=schemas.Sensitivity.clinical,
         max_words=30,
         overlap_words=5,
     )
 
     assert len(chunks) > 1
     assert len(documents) > 1
-    assert documents[0].sensitivity == Sensitivity.clinical
-    assert Role.nurse in documents[0].allowed_roles
-    assert Role.external_vendor not in documents[0].allowed_roles
+    assert documents[0].sensitivity == schemas.Sensitivity.clinical
+    assert schemas.Role.nurse in documents[0].allowed_roles
+    assert schemas.Role.external_vendor not in documents[0].allowed_roles
 
 
-def _minimal_pdf_bytes(text: str) -> bytes:
+def _minimal_pdf_bytes(*, text: str) -> bytes:
+    """Build a tiny parseable PDF for offline tests.
+
+    :param text: Text to place on the PDF page.
+    :return: PDF bytes.
+    """
     stream = f"BT /F1 12 Tf 72 720 Td ({text}) Tj ET".encode("utf-8")
     objects = [
         b"<< /Type /Catalog /Pages 2 0 R >>",
@@ -84,6 +94,7 @@ def _minimal_pdf_bytes(text: str) -> bytes:
         pdf.extend(f"{index} 0 obj\n".encode("utf-8"))
         pdf.extend(obj)
         pdf.extend(b"\nendobj\n")
+
     xref_offset = len(pdf)
     pdf.extend(f"xref\n0 {len(objects) + 1}\n".encode("utf-8"))
     pdf.extend(b"0000000000 65535 f \n")

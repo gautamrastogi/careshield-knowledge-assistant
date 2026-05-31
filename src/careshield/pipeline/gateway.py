@@ -1,21 +1,24 @@
-from __future__ import annotations
-
-from careshield.schemas import Evidence, GatewayResult
+import careshield.contracts.schemas as schemas
 
 
 class MockModelGateway:
-    """Deterministic stand-in for a real LLM provider.
-
-    A production implementation could adapt OpenAI, AWS Bedrock, Hugging Face,
-    or a local model behind this same interface.
-    """
+    """Deterministic stand-in for a real LLM provider."""
 
     provider = "mock"
     model = "deterministic-care-gateway-v1"
 
-    def generate(self, question: str, evidence: list[Evidence]) -> GatewayResult:
+    def generate(self, *, question: str, evidence: list[schemas.Evidence]) -> schemas.GatewayResult:
+        """Generate a deterministic answer from cited evidence.
+
+        :param question: User question.
+        :param evidence: Redacted citations selected for the prompt.
+        :return: Raw gateway result before downstream validation.
+        """
         lowered = question.lower()
         titles = ", ".join(item.title for item in evidence) or "no authorized documents"
+
+        # The branchy mock keeps tests stable while still showing where a real
+        # OpenAI, Bedrock, Hugging Face, or local model adapter would sit.
         if not evidence:
             answer = (
                 "I could not find authorized evidence for this role. Ask a compliance "
@@ -46,4 +49,5 @@ class MockModelGateway:
                 "policy evidence, redact sensitive identifiers, validate the response, "
                 f"and keep an audit trace. Sources: {titles}."
             )
-        return GatewayResult(provider=self.provider, model=self.model, raw_answer=answer)
+
+        return schemas.GatewayResult(provider=self.provider, model=self.model, raw_answer=answer)

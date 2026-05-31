@@ -9,4 +9,4 @@ RUN pip install --no-cache-dir .
 
 EXPOSE 8088
 
-CMD ["uvicorn", "careshield.api:app", "--host", "0.0.0.0", "--port", "8088"]
+CMD ["uvicorn", "careshield.interfaces.api:app", "--host", "0.0.0.0", "--port", "8088"]

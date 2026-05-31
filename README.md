@@ -170,20 +170,11 @@ approved internal vector service.
 
 ```text
 src/careshield/
-  app.py          orchestration flow
-  api.py          FastAPI/OpenAPI wrapper
-  cli.py          local demo entry point
-  data.py         synthetic healthcare policy docs
-  ingestion.py    PDF/DOCX/text parsing and chunking
-  embeddings.py   deterministic local embedding adapter
-  vector_store.py in-memory vector DB adapter for CI-safe retrieval
-  policy.py       role and sensitivity access checks
-  retrieval.py    metadata-filtered retrieval
-  pii.py          deterministic synthetic PII redaction
-  gateway.py      mock model gateway adapter
-  schemas.py      Pydantic request/response contracts
-  evals.py        citation, grounding, redaction, policy checks
-  tracing.py      trace event helper
+  contracts/       Pydantic request and response schemas
+  guardrails/      policy checks, PII redaction, and deterministic evals
+  interfaces/      FastAPI/OpenAPI and CLI entry points
+  pipeline/        assistant orchestration, model gateway, and trace events
+  retrieval/       synthetic data, parsing, chunking, embeddings, vector search
 ```
 
 ## Interview Talk Track

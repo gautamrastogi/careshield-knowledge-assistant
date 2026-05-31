@@ -1,25 +1,38 @@
-from __future__ import annotations
+import careshield.contracts.schemas as schemas
+import careshield.guardrails.pii as pii
 
-from careshield.pii import contains_pii
-from careshield.schemas import EvalReport, Evidence
+
+GROUNDEDNESS_TERMS = ["vendor", "redact", "model gateway", "clinical", "billing", "approved"]
 
 
 def evaluate_answer(
+    *,
     answer: str,
-    evidence: list[Evidence],
+    evidence: list[schemas.Evidence],
     redactions: list[str],
-) -> EvalReport:
+) -> schemas.EvalReport:
+    """Run deterministic safety and quality checks on the response.
+
+    :param answer: Final model answer after redaction.
+    :param evidence: Citations used as answer context.
+    :param redactions: Sensitive field labels removed from evidence or answer.
+    :return: Evaluation report suitable for API responses and CI assertions.
+    """
     citations_present = bool(evidence) and "Sources:" in answer
     evidence_text = " ".join(item.quote for item in evidence).lower()
+
+    # This is intentionally lightweight: enough to prove groundedness checks exist
+    # without bringing a judge model into every unit test.
     grounded_terms = [
         term
-        for term in ["vendor", "redact", "model gateway", "clinical", "billing", "approved"]
+        for term in GROUNDEDNESS_TERMS
         if term in answer.lower() and term in evidence_text
     ]
     grounded = bool(evidence) and bool(grounded_terms)
-    pii_redacted = not contains_pii(answer)
+    pii_redacted = not pii.contains_pii(text=answer)
     policy_safe = bool(evidence)
     checks = [citations_present, grounded, pii_redacted, policy_safe]
+
     warnings: list[str] = []
     if not citations_present:
         warnings.append("answer is missing source citations")
@@ -31,7 +44,8 @@ def evaluate_answer(
         warnings.append("no authorized evidence was used")
     if redactions:
         warnings.append(f"redacted sensitive fields: {', '.join(redactions)}")
-    return EvalReport(
+
+    return schemas.EvalReport(
         citations_present=citations_present,
         grounded=grounded,
         pii_redacted=pii_redacted,

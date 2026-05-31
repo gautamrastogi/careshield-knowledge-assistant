@@ -1,17 +1,18 @@
+import pydantic
 import pytest
-from pydantic import ValidationError
 
-from careshield.schemas import AnswerResponse, EvalReport
+import careshield.contracts.schemas as schemas
 
 
 def test_high_confidence_requires_citations() -> None:
-    with pytest.raises(ValidationError):
-        AnswerResponse(
+    """Verify schema validation blocks unsupported high confidence."""
+    with pytest.raises(expected_exception=pydantic.ValidationError):
+        schemas.AnswerResponse(
             answer="Looks good.",
             confidence="high",
             citations=[],
             redactions=[],
-            eval=EvalReport(
+            eval=schemas.EvalReport(
                 citations_present=False,
                 grounded=False,
                 pii_redacted=True,

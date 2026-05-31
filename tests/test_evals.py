@@ -1,9 +1,10 @@
-from careshield.evals import evaluate_answer
-from careshield.schemas import Evidence, Sensitivity
+import careshield.contracts.schemas as schemas
+import careshield.guardrails.evals as evals
 
 
 def test_eval_flags_missing_citations_and_weak_grounding() -> None:
-    report = evaluate_answer(
+    """Verify evals fail uncited answers."""
+    report = evals.evaluate_answer(
         answer="This answer has no sources.",
         evidence=[],
         redactions=[],
@@ -14,16 +15,20 @@ def test_eval_flags_missing_citations_and_weak_grounding() -> None:
 
 
 def test_eval_passes_grounded_redacted_answer() -> None:
+    """Verify evals pass cited and redacted answers."""
     evidence = [
-        Evidence(
+        schemas.Evidence(
             doc_id="vendor-safe-summary",
             title="Vendor Safe Summary",
             quote="External vendors may receive only approved de-identified summaries.",
-            sensitivity=Sensitivity.public,
+            sensitivity=schemas.Sensitivity.public,
         )
     ]
-    report = evaluate_answer(
-        answer="Only approved de-identified summaries may be shared with vendors. Sources: Vendor Safe Summary.",
+    report = evals.evaluate_answer(
+        answer=(
+            "Only approved de-identified summaries may be shared with vendors. "
+            "Sources: Vendor Safe Summary."
+        ),
         evidence=evidence,
         redactions=["email"],
     )

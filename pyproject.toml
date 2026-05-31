@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [project.scripts]
-careshield = "careshield.cli:main"
+careshield = "careshield.interfaces.cli:main"
 
 [build-system]
 requires = ["hatchling"]
