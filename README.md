@@ -147,6 +147,7 @@ More examples:
 - [docs/setup-guide.md](docs/setup-guide.md)
 - [docs/examples.md](docs/examples.md)
 - [docs/architecture.md](docs/architecture.md)
+- [docs/security.md](docs/security.md)
 
 The default vector backend is Chroma with a deterministic local embedding model,
 `local-hash-embedding-v1`. This keeps the app runnable without API keys while
@@ -230,6 +231,7 @@ The local app keeps the provider mocked so tests never require API keys.
 ```bash
 make test
 make ci
+make security
 ```
 
 Tests cover:
@@ -244,7 +246,17 @@ Tests cover:
 - citation and grounding-style evals
 - FastAPI `/health`, `/ask`, and `/documents/analyze`
 - golden eval cases from `evals/golden_dataset.json`
-- Ruff lint/format checks, mypy type checks, and Docker build checks in CI
+- Ruff lint/format checks, mypy type checks, dependency audit, and Docker build checks in CI
+
+## Streamlit UI
+
+Run a small local UI:
+
+```bash
+make ui
+```
+
+Use it to switch between built-in policy Q&A and uploaded document analysis.
 
 ## Public-Safety Notes
 

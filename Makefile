@@ -1,4 +1,4 @@
-.PHONY: install lint format format-check typecheck test evals examples ci demo demo-ask demo-doc api docker-build
+.PHONY: install lint format format-check typecheck test evals security examples ci demo demo-ask demo-doc api ui docker-build
 
 install:
 	uv sync --dev
@@ -21,10 +21,13 @@ typecheck:
 evals:
 	uv run pytest -q tests/test_golden_evals.py
 
+security:
+	uv run pip-audit --skip-editable
+
 examples:
 	uv run python tools/build_example_documents.py
 
-ci: lint format-check typecheck test evals
+ci: lint format-check typecheck test evals security
 
 demo: demo-ask
 
@@ -36,6 +39,9 @@ demo-doc:
 
 api:
 	uv run uvicorn careshield.interfaces.api:app --reload --host 127.0.0.1 --port 8088
+
+ui:
+	uv run streamlit run apps/streamlit_app.py
 
 docker-build:
 	docker build -t careshield-knowledge-assistant .
