@@ -1,4 +1,4 @@
-import careshield.contracts.schemas as schemas
+from careshield import contracts
 
 
 class MockModelGateway:
@@ -7,7 +7,12 @@ class MockModelGateway:
     provider = "mock"
     model = "deterministic-care-gateway-v1"
 
-    def generate(self, *, question: str, evidence: list[schemas.Evidence]) -> schemas.GatewayResult:
+    def generate(
+        self,
+        *,
+        question: str,
+        evidence: list[contracts.schema.Evidence],
+    ) -> contracts.schema.GatewayResult:
         """Generate a deterministic answer from cited evidence.
 
         :param question: User question.
@@ -24,18 +29,18 @@ class MockModelGateway:
                 "I could not find authorized evidence for this role. Ask a compliance "
                 "officer or request access through the approved workflow."
             )
+        elif "public model" in lowered or "public api" in lowered:
+            answer = (
+                "Protected health information and internal healthcare documents should not "
+                "be sent to public model APIs. Use the approved model gateway with policy "
+                f"checks, redaction, audit logging, and validation. Sources: {titles}."
+            )
         elif "external vendor" in lowered or "vendor" in lowered or "send" in lowered:
             answer = (
                 "Only approved, de-identified, minimum-necessary summaries may be shared "
                 "with external vendors. Patient identifiers, contact details, medical record "
                 "numbers, insurance identifiers, and diagnosis details must be redacted. "
                 f"Sources: {titles}."
-            )
-        elif "public model" in lowered or "public api" in lowered:
-            answer = (
-                "Protected health information and internal healthcare documents should not "
-                "be sent to public model APIs. Use the approved model gateway with policy "
-                f"checks, redaction, audit logging, and validation. Sources: {titles}."
             )
         elif "billing" in lowered or "insurance" in lowered:
             answer = (
@@ -50,4 +55,4 @@ class MockModelGateway:
                 f"and keep an audit trace. Sources: {titles}."
             )
 
-        return schemas.GatewayResult(provider=self.provider, model=self.model, raw_answer=answer)
+        return contracts.schema.GatewayResult(provider=self.provider, model=self.model, raw_answer=answer)

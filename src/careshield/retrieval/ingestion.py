@@ -1,25 +1,37 @@
-import dataclasses
 import io
 import pathlib
 import re
 
 import docx
+import pydantic
 import pypdf
 
-import careshield.contracts.schemas as schemas
+from careshield import contracts
 
 
 class DocumentParseError(ValueError):
     """Raised when an uploaded knowledge document cannot be parsed safely."""
 
 
-@dataclasses.dataclass(frozen=True)
-class ParsedDocument:
+class ParsedDocument(pydantic.BaseModel):
     """Parsed text and parser metadata for an uploaded file."""
 
-    source_name: str
-    parser: str
-    text: str
+    model_config = pydantic.ConfigDict(
+        frozen=True,
+        json_schema_extra={
+            "examples": [
+                {
+                    "source_name": "synthetic-care-report.md",
+                    "parser": "utf8-text",
+                    "text": "Vendor sharing requires de-identification and approval.",
+                }
+            ]
+        },
+    )
+
+    source_name: str = pydantic.Field(min_length=1)
+    parser: str = pydantic.Field(min_length=1)
+    text: str = pydantic.Field(min_length=20)
 
 
 SUPPORTED_EXTENSIONS = {".txt", ".md", ".pdf", ".docx"}
@@ -97,10 +109,10 @@ def build_documents_from_text(
     *,
     text: str,
     source_name: str,
-    sensitivity: schemas.Sensitivity,
+    sensitivity: contracts.schema.Sensitivity,
     max_words: int = 90,
     overlap_words: int = 18,
-) -> list[schemas.Document]:
+) -> list[contracts.schema.Document]:
     """Turn parsed text into policy-aware retrievable chunks.
 
     :param text: Parsed document text.
@@ -116,7 +128,7 @@ def build_documents_from_text(
     chunks = chunk_text(text=text, max_words=max_words, overlap_words=overlap_words)
 
     return [
-        schemas.Document(
+        contracts.schema.Document(
             id=f"{source_id}-chunk-{index}",
             title=f"{source_path.stem} section {index}",
             body=chunk,
@@ -184,24 +196,31 @@ def _safe_id(*, value: str) -> str:
     return normalized or "document"
 
 
-def _allowed_roles_for_sensitivity(*, sensitivity: schemas.Sensitivity) -> list[schemas.Role]:
+def _allowed_roles_for_sensitivity(
+    *,
+    sensitivity: contracts.schema.Sensitivity,
+) -> list[contracts.schema.Role]:
     """Derive allowed roles for uploaded chunks from sensitivity.
 
     :param sensitivity: Sensitivity assigned by the upload request.
     :return: Roles allowed to retrieve the uploaded chunks.
     """
-    if sensitivity == schemas.Sensitivity.public:
-        return list(schemas.Role)
-    if sensitivity == schemas.Sensitivity.internal:
+    if sensitivity == contracts.schema.Sensitivity.public:
+        return list(contracts.schema.Role)
+    if sensitivity == contracts.schema.Sensitivity.internal:
         return [
-            schemas.Role.doctor,
-            schemas.Role.nurse,
-            schemas.Role.billing_analyst,
-            schemas.Role.vendor_manager,
-            schemas.Role.compliance_officer,
+            contracts.schema.Role.doctor,
+            contracts.schema.Role.nurse,
+            contracts.schema.Role.billing_analyst,
+            contracts.schema.Role.vendor_manager,
+            contracts.schema.Role.compliance_officer,
         ]
-    if sensitivity == schemas.Sensitivity.clinical:
-        return [schemas.Role.doctor, schemas.Role.nurse, schemas.Role.compliance_officer]
-    if sensitivity == schemas.Sensitivity.billing:
-        return [schemas.Role.billing_analyst, schemas.Role.compliance_officer]
-    return [schemas.Role.compliance_officer]
+    if sensitivity == contracts.schema.Sensitivity.clinical:
+        return [
+            contracts.schema.Role.doctor,
+            contracts.schema.Role.nurse,
+            contracts.schema.Role.compliance_officer,
+        ]
+    if sensitivity == contracts.schema.Sensitivity.billing:
+        return [contracts.schema.Role.billing_analyst, contracts.schema.Role.compliance_officer]
+    return [contracts.schema.Role.compliance_officer]

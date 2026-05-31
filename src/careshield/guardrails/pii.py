@@ -1,6 +1,6 @@
-import dataclasses
 import re
 
+import pydantic
 
 PII_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("email", re.compile(pattern=r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")),
@@ -12,11 +12,22 @@ PII_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
 ]
 
 
-@dataclasses.dataclass(frozen=True)
-class RedactionResult:
+class RedactionResult(pydantic.BaseModel):
     """Text plus the synthetic sensitive fields that were redacted."""
 
-    text: str
+    model_config = pydantic.ConfigDict(
+        frozen=True,
+        json_schema_extra={
+            "examples": [
+                {
+                    "text": "[REDACTED_PATIENT_NAME] emailed [REDACTED_EMAIL].",
+                    "redactions": ["email", "patient_name"],
+                }
+            ]
+        },
+    )
+
+    text: str = pydantic.Field(min_length=1)
     redactions: list[str]
 
 

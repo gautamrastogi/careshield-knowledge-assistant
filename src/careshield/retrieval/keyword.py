@@ -1,8 +1,7 @@
 import re
 
-import careshield.contracts.schemas as schemas
 import careshield.guardrails.policy as policy
-
+from careshield import contracts
 
 STOP_WORDS = {
     "a",
@@ -37,7 +36,7 @@ def tokenize(*, text: str) -> set[str]:
     return {token for token in tokens if token not in STOP_WORDS and len(token) > 2}
 
 
-def score_document(*, question: str, document: schemas.Document) -> int:
+def score_document(*, question: str, document: contracts.schema.Document) -> int:
     """Score a document using deterministic keyword overlap.
 
     :param question: User question.
@@ -52,10 +51,10 @@ def score_document(*, question: str, document: schemas.Document) -> int:
 def retrieve(
     *,
     question: str,
-    context: schemas.UserContext,
-    documents: list[schemas.Document],
+    context: contracts.schema.UserContext,
+    documents: list[contracts.schema.Document],
     max_docs: int = 3,
-) -> list[schemas.Document]:
+) -> list[contracts.schema.Document]:
     """Retrieve authorized built-in documents.
 
     :param question: User question.
@@ -66,22 +65,21 @@ def retrieve(
     """
     allowed_documents = policy.filter_allowed_documents(context=context, documents=documents)
     scored = [
-        (score_document(question=question, document=document), document)
-        for document in allowed_documents
+        (score_document(question=question, document=document), document) for document in allowed_documents
     ]
     scored.sort(key=lambda item: (item[0], item[1].title), reverse=True)
     relevant = [document for score, document in scored if score > 0]
     return relevant[:max_docs]
 
 
-def to_evidence(*, document: schemas.Document, quote: str) -> schemas.Evidence:
+def to_evidence(*, document: contracts.schema.Document, quote: str) -> contracts.schema.Evidence:
     """Convert a retrieved document into a response citation.
 
     :param document: Retrieved document or chunk.
     :param quote: Redacted quote selected from the document body.
     :return: Citation object for the API response.
     """
-    return schemas.Evidence(
+    return contracts.schema.Evidence(
         doc_id=document.id,
         title=document.title,
         quote=quote,

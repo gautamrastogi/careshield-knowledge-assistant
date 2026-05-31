@@ -1,0 +1,83 @@
+{
+  "cases": [
+    {
+      "id": "vendor-redaction-nurse",
+      "mode": "ask",
+      "role": "nurse",
+      "question": "Can I send a patient discharge summary to an external vendor?",
+      "expected_citation_ids": [
+        "patient-summary-redaction-guide",
+        "clinical-access-policy"
+      ],
+      "expected_answer_terms": [
+        "external vendors",
+        "redacted",
+        "Sources:"
+      ],
+      "min_score": 100,
+      "must_redact": [
+        "email",
+        "phone",
+        "medical_record_number"
+      ]
+    },
+    {
+      "id": "external-vendor-public-only",
+      "mode": "ask",
+      "role": "external_vendor",
+      "question": "Can I receive patient summaries?",
+      "expected_citation_ids": [
+        "vendor-safe-summary"
+      ],
+      "expected_answer_terms": [
+        "authorized policy evidence",
+        "audit trace",
+        "Sources:"
+      ],
+      "min_score": 75,
+      "must_redact": []
+    },
+    {
+      "id": "public-model-policy",
+      "mode": "ask",
+      "role": "compliance_officer",
+      "question": "Can teams send protected health information to a public model API?",
+      "expected_citation_ids": [
+        "model-use-policy"
+      ],
+      "expected_answer_terms": [
+        "public model APIs",
+        "approved model gateway",
+        "Sources:"
+      ],
+      "min_score": 100,
+      "must_redact": []
+    },
+    {
+      "id": "uploaded-report-redaction",
+      "mode": "document",
+      "role": "nurse",
+      "question": "What must be redacted before vendor sharing?",
+      "source_path": "examples/synthetic-care-report.md",
+      "sensitivity": "clinical",
+      "expected_citation_ids": [
+        "synthetic-care-report-chunk-1",
+        "synthetic-care-report-chunk-2"
+      ],
+      "expected_answer_terms": [
+        "external vendors",
+        "redacted",
+        "Sources:"
+      ],
+      "min_score": 100,
+      "must_redact": [
+        "patient_name",
+        "email",
+        "phone",
+        "medical_record_number",
+        "insurance_id",
+        "diagnosis"
+      ]
+    }
+  ]
+}

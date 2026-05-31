@@ -1,16 +1,71 @@
-import dataclasses
+import typing
 
-import careshield.contracts.schemas as schemas
+import pydantic
+
 import careshield.guardrails.policy as policy
 import careshield.retrieval.embeddings as embeddings
+from careshield import contracts
 
 
-@dataclasses.dataclass(frozen=True)
-class VectorRecord:
+class VectorRecord(pydantic.BaseModel):
     """Stored vector and its source document metadata."""
 
-    document: schemas.Document
-    vector: list[float]
+    model_config = pydantic.ConfigDict(
+        frozen=True,
+        json_schema_extra={
+            "examples": [
+                {
+                    "document": {
+                        "id": "synthetic-care-report-chunk-1",
+                        "title": "synthetic-care-report section 1",
+                        "body": "Vendor sharing requires redaction.",
+                        "sensitivity": "clinical",
+                        "allowed_roles": ["nurse"],
+                        "tags": ["uploaded-report"],
+                    },
+                    "vector": [0.1, 0.2, 0.3],
+                }
+            ]
+        },
+    )
+
+    document: contracts.schema.Document
+    vector: list[float] = pydantic.Field(min_length=1)
+
+
+class VectorStore(typing.Protocol):
+    """Common interface for vector store implementations."""
+
+    @property
+    def size(self) -> int:
+        """Return the number of indexed vectors.
+
+        :return: Indexed vector count.
+        """
+        raise NotImplementedError
+
+    def add_documents(self, *, documents: list[contracts.schema.Document]) -> None:
+        """Index document chunks.
+
+        :param documents: Documents or chunks to index.
+        """
+        raise NotImplementedError
+
+    def search(
+        self,
+        *,
+        query: str,
+        context: contracts.schema.UserContext,
+        max_docs: int = 3,
+    ) -> list[contracts.schema.Document]:
+        """Search authorized chunks.
+
+        :param query: User question.
+        :param context: User role and purpose.
+        :param max_docs: Maximum chunks to return.
+        :return: Authorized chunks ranked by relevance.
+        """
+        raise NotImplementedError
 
 
 class InMemoryVectorStore:
@@ -32,7 +87,7 @@ class InMemoryVectorStore:
         """
         return len(self._records)
 
-    def add_documents(self, *, documents: list[schemas.Document]) -> None:
+    def add_documents(self, *, documents: list[contracts.schema.Document]) -> None:
         """Embed and store document chunks.
 
         :param documents: Documents or chunks to index.
@@ -49,9 +104,9 @@ class InMemoryVectorStore:
         self,
         *,
         query: str,
-        context: schemas.UserContext,
+        context: contracts.schema.UserContext,
         max_docs: int = 3,
-    ) -> list[schemas.Document]:
+    ) -> list[contracts.schema.Document]:
         """Search vectors after applying role/sensitivity filtering.
 
         :param query: User question.
@@ -82,10 +137,30 @@ class InMemoryVectorStore:
         return [document for score, document in scored if score > 0][:max_docs]
 
 
-def _document_text(*, document: schemas.Document) -> str:
+def _document_text(*, document: contracts.schema.Document) -> str:
     """Build the text used for embedding a document.
 
     :param document: Document or chunk to embed.
     :return: Combined title, body, and tags.
     """
     return " ".join([document.title, document.body, " ".join(document.tags)])
+
+
+def build_vector_store(
+    *,
+    backend: str,
+    embedding_model: embeddings.HashEmbeddingModel,
+) -> VectorStore:
+    """Create a vector store implementation by name.
+
+    :param backend: Vector backend name: ``memory`` or ``chroma``.
+    :param embedding_model: Embedding adapter used by the vector store.
+    :return: Vector store implementation.
+    """
+    if backend == "memory":
+        return InMemoryVectorStore(embedding_model=embedding_model)
+    if backend == "chroma":
+        import careshield.retrieval.chroma_store as chroma_store
+
+        return chroma_store.ChromaVectorStore(embedding_model=embedding_model)
+    raise ValueError(f"unsupported vector store backend: {backend}")

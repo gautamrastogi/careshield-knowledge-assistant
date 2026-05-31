@@ -1,12 +1,12 @@
-import careshield.contracts.schemas as schemas
 import careshield.pipeline.assistant as assistant_service
+from careshield import contracts
 
 
 def test_assistant_returns_structured_cited_answer_for_nurse() -> None:
     """Verify a nurse receives a cited, redacted answer."""
     response = assistant_service.CareShieldAssistant().ask(
-        request=schemas.AskRequest(
-            role=schemas.Role.nurse,
+        request=contracts.schema.AskRequest(
+            role=contracts.schema.Role.nurse,
             question="Can I send a patient discharge summary to an external vendor?",
         )
     )
@@ -21,8 +21,8 @@ def test_assistant_returns_structured_cited_answer_for_nurse() -> None:
 def test_external_vendor_answer_uses_only_public_source() -> None:
     """Verify external vendors only receive public evidence."""
     response = assistant_service.CareShieldAssistant().ask(
-        request=schemas.AskRequest(
-            role=schemas.Role.external_vendor,
+        request=contracts.schema.AskRequest(
+            role=contracts.schema.Role.external_vendor,
             question="Can I receive patient summaries?",
         )
     )

@@ -1,12 +1,15 @@
-import careshield.contracts.schemas as schemas
-
+from careshield import contracts
 
 DOCUMENTS = [
-    schemas.Document(
+    contracts.schema.Document(
         id="clinical-access-policy",
         title="Clinical Access Policy",
-        sensitivity=schemas.Sensitivity.clinical,
-        allowed_roles=[schemas.Role.doctor, schemas.Role.nurse, schemas.Role.compliance_officer],
+        sensitivity=contracts.schema.Sensitivity.clinical,
+        allowed_roles=[
+            contracts.schema.Role.doctor,
+            contracts.schema.Role.nurse,
+            contracts.schema.Role.compliance_officer,
+        ],
         tags=["clinical", "discharge", "care-team", "minimum-necessary"],
         body=(
             "Doctors and nurses may access discharge notes only for active patient care. "
@@ -14,15 +17,15 @@ DOCUMENTS = [
             "de-identified, minimum-necessary, and approved by compliance."
         ),
     ),
-    schemas.Document(
+    contracts.schema.Document(
         id="patient-summary-redaction-guide",
         title="Patient Summary Redaction Guide",
-        sensitivity=schemas.Sensitivity.internal,
+        sensitivity=contracts.schema.Sensitivity.internal,
         allowed_roles=[
-            schemas.Role.doctor,
-            schemas.Role.nurse,
-            schemas.Role.vendor_manager,
-            schemas.Role.compliance_officer,
+            contracts.schema.Role.doctor,
+            contracts.schema.Role.nurse,
+            contracts.schema.Role.vendor_manager,
+            contracts.schema.Role.compliance_officer,
         ],
         tags=["redaction", "phi", "pii", "vendor-sharing"],
         body=(
@@ -33,11 +36,11 @@ DOCUMENTS = [
             "Insurance ID INS-000-EXAMPLE, diagnosis Type 2 diabetes."
         ),
     ),
-    schemas.Document(
+    contracts.schema.Document(
         id="billing-data-policy",
         title="Billing Data Policy",
-        sensitivity=schemas.Sensitivity.billing,
-        allowed_roles=[schemas.Role.billing_analyst, schemas.Role.compliance_officer],
+        sensitivity=contracts.schema.Sensitivity.billing,
+        allowed_roles=[contracts.schema.Role.billing_analyst, contracts.schema.Role.compliance_officer],
         tags=["billing", "insurance", "claims", "payment"],
         body=(
             "Billing analysts may access insurance identifiers and claim status for payment "
@@ -45,11 +48,11 @@ DOCUMENTS = [
             "approves a specific investigation."
         ),
     ),
-    schemas.Document(
+    contracts.schema.Document(
         id="vendor-data-sharing-policy",
         title="Vendor Data Sharing Policy",
-        sensitivity=schemas.Sensitivity.internal,
-        allowed_roles=[schemas.Role.vendor_manager, schemas.Role.compliance_officer],
+        sensitivity=contracts.schema.Sensitivity.internal,
+        allowed_roles=[contracts.schema.Role.vendor_manager, contracts.schema.Role.compliance_officer],
         tags=["vendor", "sharing", "approval", "de-identification"],
         body=(
             "Vendor managers may coordinate approved vendor data exchanges. External sharing "
@@ -57,14 +60,14 @@ DOCUMENTS = [
             "an audit trail. Raw PHI must not be sent to vendors."
         ),
     ),
-    schemas.Document(
+    contracts.schema.Document(
         id="vendor-safe-summary",
         title="Vendor Safe Summary",
-        sensitivity=schemas.Sensitivity.public,
+        sensitivity=contracts.schema.Sensitivity.public,
         allowed_roles=[
-            schemas.Role.external_vendor,
-            schemas.Role.vendor_manager,
-            schemas.Role.compliance_officer,
+            contracts.schema.Role.external_vendor,
+            contracts.schema.Role.vendor_manager,
+            contracts.schema.Role.compliance_officer,
         ],
         tags=["vendor", "public", "safe-summary"],
         body=(
@@ -73,16 +76,16 @@ DOCUMENTS = [
             "insurance identifiers, and diagnosis details are not allowed in vendor-facing data."
         ),
     ),
-    schemas.Document(
+    contracts.schema.Document(
         id="model-use-policy",
         title="Model Use Policy",
-        sensitivity=schemas.Sensitivity.internal,
+        sensitivity=contracts.schema.Sensitivity.internal,
         allowed_roles=[
-            schemas.Role.doctor,
-            schemas.Role.nurse,
-            schemas.Role.billing_analyst,
-            schemas.Role.vendor_manager,
-            schemas.Role.compliance_officer,
+            contracts.schema.Role.doctor,
+            contracts.schema.Role.nurse,
+            contracts.schema.Role.billing_analyst,
+            contracts.schema.Role.vendor_manager,
+            contracts.schema.Role.compliance_officer,
         ],
         tags=["genai", "model-gateway", "public-api", "approved-provider"],
         body=(

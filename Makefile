@@ -1,10 +1,27 @@
-.PHONY: install test demo demo-doc api docker-build
+.PHONY: install lint format typecheck test evals ci demo demo-doc api docker-build
 
 install:
 	uv sync --dev
 
 test:
 	uv run pytest -q
+
+lint:
+	uv run ruff check .
+
+format:
+	uv run ruff format .
+
+format-check:
+	uv run ruff format --check .
+
+typecheck:
+	uv run mypy src
+
+evals:
+	uv run pytest -q tests/test_golden_evals.py
+
+ci: lint format-check typecheck test
 
 demo:
 	uv run careshield ask --role nurse --question "Can I send a patient discharge summary to an external vendor?"

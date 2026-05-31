@@ -1,17 +1,21 @@
 # CareShield Knowledge Assistant
 
-A tiny, public-safe GenAI platform demo for synthetic healthcare policy Q&A.
+A small, public-safe GenAI learning project for governed healthcare knowledge
+assistance.
 
-The goal is not to build a flashy chatbot. The goal is to demonstrate the
-production controls around a GenAI/RAG workflow:
+The goal is to practice production-style GenAI engineering, not only prompting.
+CareShield intentionally keeps the data synthetic, but the architecture mirrors
+real RAG systems:
 
 - document ingestion for text, Markdown, PDF, and Word files
-- chunking, local embeddings, and vector retrieval
+- chunking, local embeddings, Chroma vector storage, and retrieval
 - policy-aware retrieval before model input
 - synthetic PII/PHI redaction
 - model gateway abstraction
 - Pydantic structured responses
 - citation and groundedness-style evals
+- golden eval dataset in CI
+- Ruff linting/formatting and mypy type checks
 - trace events for debugging and audit
 - CLI and FastAPI/OpenAPI entry points
 
@@ -95,7 +99,7 @@ uv run careshield analyze-doc \
   --question "What must be redacted before vendor sharing?"
 ```
 
-## API / OpenAPI Demo
+## API / OpenAPI
 
 Start the FastAPI app:
 
@@ -131,12 +135,13 @@ curl -s http://127.0.0.1:8088/documents/analyze \
   | python -m json.tool
 ```
 
-Supported demo input formats are `.txt`, `.md`, `.pdf`, and `.docx`.
+Supported input formats are `.txt`, `.md`, `.pdf`, and `.docx`.
 
-The local embedding model is `local-hash-embedding-v1`. In production this
-adapter boundary is where you would use Bedrock embeddings, OpenAI embeddings,
-Hugging Face embeddings, OpenSearch vector search, Aurora pgvector, or another
-approved internal vector service.
+The default vector backend is Chroma with a deterministic local embedding model,
+`local-hash-embedding-v1`. This keeps the app runnable without API keys while
+still teaching the vector DB workflow. The adapter boundary is where you can
+later plug in Bedrock embeddings, OpenAI embeddings, Hugging Face embeddings,
+OpenSearch vector search, Aurora pgvector, or another approved vector service.
 
 ## What The Response Shows
 
@@ -174,18 +179,21 @@ src/careshield/
   guardrails/      policy checks, PII redaction, and deterministic evals
   interfaces/      FastAPI/OpenAPI and CLI entry points
   pipeline/        assistant orchestration, model gateway, and trace events
-  retrieval/       synthetic data, parsing, chunking, embeddings, vector search
+  retrieval/       synthetic data, parsing, chunking, embeddings, Chroma adapter
 ```
 
-## Interview Talk Track
+## Learning Talk Track
 
 > I built CareShield as a small governed GenAI/RAG assistant using synthetic
-> healthcare policy documents. The important part is the platform control flow:
+> healthcare documents. The important part is the platform control flow:
 > documents can be parsed, chunked, embedded, indexed, filtered by user context,
 > retrieved with authorization controls, redacted, sent through a gateway
 > abstraction, validated with Pydantic, and checked by evals for citations,
 > grounding, PII redaction, and policy safety. It is intentionally deterministic
-> so the security and quality controls are testable offline and in CI.
+> so the security and quality controls are testable offline and in CI, while the
+> vector layer uses Chroma so I can learn a real GenAI storage pattern.
+
+More detail: [docs/learning-talk-track.md](docs/learning-talk-track.md)
 
 ## AWS Deployment Mapping
 
@@ -204,12 +212,13 @@ API Gateway
   -> Secrets Manager and KMS
 ```
 
-The demo keeps the provider mocked so tests never require API keys.
+The local app keeps the provider mocked so tests never require API keys.
 
 ## Test Coverage
 
 ```bash
 make test
+make ci
 ```
 
 Tests cover:
@@ -223,6 +232,8 @@ Tests cover:
 - structured response validation
 - citation and grounding-style evals
 - FastAPI `/health`, `/ask`, and `/documents/analyze`
+- golden eval cases from `evals/golden_dataset.json`
+- Ruff lint/format checks and mypy type checks in CI
 
 ## Public-Safety Notes
 

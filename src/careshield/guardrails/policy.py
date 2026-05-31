@@ -1,35 +1,37 @@
-import careshield.contracts.schemas as schemas
+from careshield import contracts
 
-
-ROLE_SENSITIVITY_ALLOWLIST: dict[schemas.Role, set[schemas.Sensitivity]] = {
-    schemas.Role.doctor: {
-        schemas.Sensitivity.public,
-        schemas.Sensitivity.internal,
-        schemas.Sensitivity.clinical,
+ROLE_SENSITIVITY_ALLOWLIST: dict[contracts.schema.Role, set[contracts.schema.Sensitivity]] = {
+    contracts.schema.Role.doctor: {
+        contracts.schema.Sensitivity.public,
+        contracts.schema.Sensitivity.internal,
+        contracts.schema.Sensitivity.clinical,
     },
-    schemas.Role.nurse: {
-        schemas.Sensitivity.public,
-        schemas.Sensitivity.internal,
-        schemas.Sensitivity.clinical,
+    contracts.schema.Role.nurse: {
+        contracts.schema.Sensitivity.public,
+        contracts.schema.Sensitivity.internal,
+        contracts.schema.Sensitivity.clinical,
     },
-    schemas.Role.billing_analyst: {
-        schemas.Sensitivity.public,
-        schemas.Sensitivity.internal,
-        schemas.Sensitivity.billing,
+    contracts.schema.Role.billing_analyst: {
+        contracts.schema.Sensitivity.public,
+        contracts.schema.Sensitivity.internal,
+        contracts.schema.Sensitivity.billing,
     },
-    schemas.Role.vendor_manager: {schemas.Sensitivity.public, schemas.Sensitivity.internal},
-    schemas.Role.external_vendor: {schemas.Sensitivity.public},
-    schemas.Role.compliance_officer: {
-        schemas.Sensitivity.public,
-        schemas.Sensitivity.internal,
-        schemas.Sensitivity.clinical,
-        schemas.Sensitivity.billing,
-        schemas.Sensitivity.restricted,
+    contracts.schema.Role.vendor_manager: {
+        contracts.schema.Sensitivity.public,
+        contracts.schema.Sensitivity.internal,
+    },
+    contracts.schema.Role.external_vendor: {contracts.schema.Sensitivity.public},
+    contracts.schema.Role.compliance_officer: {
+        contracts.schema.Sensitivity.public,
+        contracts.schema.Sensitivity.internal,
+        contracts.schema.Sensitivity.clinical,
+        contracts.schema.Sensitivity.billing,
+        contracts.schema.Sensitivity.restricted,
     },
 }
 
 
-def can_access(*, context: schemas.UserContext, document: schemas.Document) -> bool:
+def can_access(*, context: contracts.schema.UserContext, document: contracts.schema.Document) -> bool:
     """Return whether the caller can use a document as prompt evidence.
 
     :param context: User role and purpose derived from the request.
@@ -42,9 +44,9 @@ def can_access(*, context: schemas.UserContext, document: schemas.Document) -> b
 
 def filter_allowed_documents(
     *,
-    context: schemas.UserContext,
-    documents: list[schemas.Document],
-) -> list[schemas.Document]:
+    context: contracts.schema.UserContext,
+    documents: list[contracts.schema.Document],
+) -> list[contracts.schema.Document]:
     """Filter documents before retrieval ranking.
 
     :param context: User role and purpose derived from the request.

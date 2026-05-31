@@ -1,6 +1,5 @@
-import careshield.contracts.schemas as schemas
 import careshield.guardrails.pii as pii
-
+from careshield import contracts
 
 GROUNDEDNESS_TERMS = ["vendor", "redact", "model gateway", "clinical", "billing", "approved"]
 
@@ -8,9 +7,9 @@ GROUNDEDNESS_TERMS = ["vendor", "redact", "model gateway", "clinical", "billing"
 def evaluate_answer(
     *,
     answer: str,
-    evidence: list[schemas.Evidence],
+    evidence: list[contracts.schema.Evidence],
     redactions: list[str],
-) -> schemas.EvalReport:
+) -> contracts.schema.EvalReport:
     """Run deterministic safety and quality checks on the response.
 
     :param answer: Final model answer after redaction.
@@ -23,11 +22,7 @@ def evaluate_answer(
 
     # This is intentionally lightweight: enough to prove groundedness checks exist
     # without bringing a judge model into every unit test.
-    grounded_terms = [
-        term
-        for term in GROUNDEDNESS_TERMS
-        if term in answer.lower() and term in evidence_text
-    ]
+    grounded_terms = [term for term in GROUNDEDNESS_TERMS if term in answer.lower() and term in evidence_text]
     grounded = bool(evidence) and bool(grounded_terms)
     pii_redacted = not pii.contains_pii(text=answer)
     policy_safe = bool(evidence)
@@ -45,7 +40,7 @@ def evaluate_answer(
     if redactions:
         warnings.append(f"redacted sensitive fields: {', '.join(redactions)}")
 
-    return schemas.EvalReport(
+    return contracts.schema.EvalReport(
         citations_present=citations_present,
         grounded=grounded,
         pii_redacted=pii_redacted,

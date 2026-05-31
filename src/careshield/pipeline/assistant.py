@@ -1,4 +1,5 @@
-import careshield.contracts.schemas as schemas
+import typing
+
 import careshield.guardrails.evals as evals
 import careshield.guardrails.pii as pii
 import careshield.pipeline.gateway as gateway
@@ -8,6 +9,7 @@ import careshield.retrieval.embeddings as embeddings
 import careshield.retrieval.ingestion as ingestion
 import careshield.retrieval.keyword as keyword
 import careshield.retrieval.vector_store as vector_store
+from careshield import contracts
 
 
 class CareShieldAssistant:
@@ -18,16 +20,19 @@ class CareShieldAssistant:
         *,
         model_gateway: gateway.MockModelGateway | None = None,
         embedding_model: embeddings.HashEmbeddingModel | None = None,
+        vector_backend: str = "chroma",
     ) -> None:
         """Create the assistant service.
 
         :param model_gateway: Gateway adapter for model calls.
         :param embedding_model: Embedding adapter for uploaded documents.
+        :param vector_backend: Vector store backend used for uploaded documents.
         """
         self.model_gateway = model_gateway or gateway.MockModelGateway()
         self.embedding_model = embedding_model or embeddings.HashEmbeddingModel()
+        self.vector_backend = vector_backend
 
-    def ask(self, *, request: schemas.AskRequest) -> schemas.AnswerResponse:
+    def ask(self, *, request: contracts.schema.AskRequest) -> contracts.schema.AnswerResponse:
         """Answer a question using built-in synthetic policy documents.
 
         :param request: Validated Q&A request.
@@ -36,7 +41,7 @@ class CareShieldAssistant:
         trace = tracing.Trace()
         trace.add(step="request", status="ok", detail=f"received question for role={request.role}")
 
-        context = schemas.UserContext(
+        context = contracts.schema.UserContext(
             role=request.role,
             department=request.department,
             purpose="synthetic_healthcare_policy_qa",
@@ -63,12 +68,12 @@ class CareShieldAssistant:
         *,
         content: bytes,
         source_name: str,
-        role: schemas.Role,
+        role: contracts.schema.Role,
         question: str,
-        sensitivity: schemas.Sensitivity = schemas.Sensitivity.clinical,
+        sensitivity: contracts.schema.Sensitivity = contracts.schema.Sensitivity.clinical,
         department: str = "care-operations",
         max_docs: int = 3,
-    ) -> schemas.DocumentAnalysisResponse:
+    ) -> contracts.schema.DocumentAnalysisResponse:
         """Analyze an uploaded document through the RAG pipeline.
 
         :param content: Raw uploaded file bytes.
@@ -97,7 +102,10 @@ class CareShieldAssistant:
         )
         trace.add(step="chunking", status="ok", detail=f"chunks={len(documents)} sensitivity={sensitivity}")
 
-        store = vector_store.InMemoryVectorStore(embedding_model=self.embedding_model)
+        store = vector_store.build_vector_store(
+            backend=self.vector_backend,
+            embedding_model=self.embedding_model,
+        )
         store.add_documents(documents=documents)
         trace.add(
             step="vector_index",
@@ -105,7 +113,7 @@ class CareShieldAssistant:
             detail=f"model={self.embedding_model.name} dimensions={self.embedding_model.dimensions}",
         )
 
-        context = schemas.UserContext(
+        context = contracts.schema.UserContext(
             role=role,
             department=department,
             purpose="synthetic_document_analysis",
@@ -119,7 +127,7 @@ class CareShieldAssistant:
             detail=f"retrieved {len(retrieved)} authorized chunk(s)",
         )
 
-        ingest_report = schemas.IngestReport(
+        ingest_report = contracts.schema.IngestReport(
             source_name=source_name,
             parser=parsed.parser,
             characters=len(parsed.text),
@@ -129,15 +137,18 @@ class CareShieldAssistant:
             indexed_vectors=store.size,
         )
         answer = self._answer_from_documents(question=question, documents=retrieved, trace=trace)
-        return schemas.DocumentAnalysisResponse(**answer.model_dump(mode="python"), ingestion=ingest_report)
+        return contracts.schema.DocumentAnalysisResponse(
+            **answer.model_dump(mode="python"),
+            ingestion=ingest_report,
+        )
 
     def _answer_from_documents(
         self,
         *,
         question: str,
-        documents: list[schemas.Document],
+        documents: list[contracts.schema.Document],
         trace: tracing.Trace,
-    ) -> schemas.AnswerResponse:
+    ) -> contracts.schema.AnswerResponse:
         """Run redaction, model gateway, validation, and evals.
 
         :param question: User question.
@@ -145,7 +156,7 @@ class CareShieldAssistant:
         :param trace: Mutable trace collector.
         :return: Structured answer response.
         """
-        citations: list[schemas.Evidence] = []
+        citations: list[contracts.schema.Evidence] = []
         redactions: set[str] = set()
 
         for document in documents:
@@ -177,7 +188,7 @@ class CareShieldAssistant:
         )
 
         confidence = _confidence_from_score(score=eval_report.score)
-        response = schemas.AnswerResponse(
+        response = contracts.schema.AnswerResponse(
             answer=answer_redaction.text,
             confidence=confidence,
             citations=citations,
@@ -192,7 +203,7 @@ class CareShieldAssistant:
         return response
 
 
-def _confidence_from_score(*, score: int) -> str:
+def _confidence_from_score(*, score: int) -> typing.Literal["low", "medium", "high"]:
     """Convert evaluation score into response confidence.
 
     :param score: Evaluation score from 0 to 100.
