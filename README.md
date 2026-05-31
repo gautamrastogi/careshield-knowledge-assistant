@@ -15,6 +15,7 @@ real RAG systems:
 - Pydantic structured responses
 - citation and groundedness-style evals
 - golden eval dataset in CI
+- OpenTelemetry spans for request, retrieval, gateway, eval, and validation stages
 - Ruff linting/formatting and mypy type checks
 - trace events for debugging and audit
 - CLI and FastAPI/OpenAPI entry points
@@ -257,6 +258,18 @@ make ui
 ```
 
 Use it to switch between built-in policy Q&A and uploaded document analysis.
+
+## OpenTelemetry Tracing
+
+CareShield returns lightweight trace events in every response and also creates
+OpenTelemetry spans around the same pipeline stages. OTEL is no-op by default
+so CLI JSON stays clean.
+
+Print spans to stderr while learning:
+
+```bash
+CARESHIELD_OTEL_CONSOLE=true make demo-doc | python -m json.tool
+```
 
 ## Public-Safety Notes
 

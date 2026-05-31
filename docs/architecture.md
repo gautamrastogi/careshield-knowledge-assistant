@@ -20,6 +20,7 @@ request
 -> Pydantic response validation
 -> deterministic evals
 -> trace output
+-> OpenTelemetry spans
 ```
 
 The key design point is that unauthorized data never enters the prompt. That is
@@ -109,6 +110,27 @@ The evals are intentionally deterministic:
 - golden eval cases run in CI
 
 This gives quick regression checks without using a judge model or live provider.
+
+## Tracing Strategy
+
+CareShield has two tracing layers:
+
+- response trace events: small `TraceEvent` objects returned in API/CLI output
+- OpenTelemetry spans: provider-neutral observability data for tools such as
+  OTEL Collector, Jaeger, Tempo, Datadog, or CloudWatch-compatible pipelines
+
+The response trace is useful for learning and debugging one request. OTEL is
+useful when the app runs as a service and you want timing, span hierarchy, and
+exporters.
+
+```mermaid
+flowchart LR
+    A[CareShield TraceEvent] --> B[Returned in JSON response]
+    A --> C[Added as event on active OTEL span]
+    D[OTEL span] --> E[No-op by default]
+    D --> F[Console exporter when CARESHIELD_OTEL_CONSOLE=true]
+    D --> G[Future OTEL Collector / CloudWatch / Tempo]
+```
 
 ## AWS Mapping
 

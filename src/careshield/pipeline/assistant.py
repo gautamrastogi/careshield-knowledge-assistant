@@ -30,30 +30,35 @@ class CareShieldAssistant:
         :param request: Validated Q&A request.
         :return: Structured answer with citations, evals, and trace events.
         """
-        trace = tracing.Trace()
-        trace.add(step="request", status="ok", detail=f"received question for role={request.role}")
+        with tracing.start_span(
+            name="careshield.ask",
+            attributes={"careshield.role": request.role.value},
+        ):
+            trace = tracing.Trace()
+            trace.add(step="request", status="ok", detail=f"received question for role={request.role}")
 
-        context = contracts.schema.UserContext(
-            role=request.role,
-            department=request.department,
-            purpose="synthetic_healthcare_policy_qa",
-        )
-        trace.add(step="auth_context", status="ok", detail=f"context role={context.role}")
+            context = contracts.schema.UserContext(
+                role=request.role,
+                department=request.department,
+                purpose="synthetic_healthcare_policy_qa",
+            )
+            trace.add(step="auth_context", status="ok", detail=f"context role={context.role}")
 
-        # Built-in policy Q&A uses deterministic keyword retrieval. Uploaded
-        # documents use the vector path in analyze_document.
-        documents = retrieval.keyword.retrieve(
-            question=request.question,
-            context=context,
-            documents=retrieval.data.DOCUMENTS,
-            max_docs=request.max_docs,
-        )
-        trace.add(
-            step="policy_retrieval",
-            status="ok" if documents else "blocked",
-            detail=f"retrieved {len(documents)} authorized document(s)",
-        )
-        return self._answer_from_documents(question=request.question, documents=documents, trace=trace)
+            # Built-in policy Q&A uses deterministic keyword retrieval. Uploaded
+            # documents use the vector path in analyze_document.
+            with tracing.start_span(name="careshield.keyword_retrieval"):
+                documents = retrieval.keyword.retrieve(
+                    question=request.question,
+                    context=context,
+                    documents=retrieval.data.DOCUMENTS,
+                    max_docs=request.max_docs,
+                )
+            trace.add(
+                step="policy_retrieval",
+                status="ok" if documents else "blocked",
+                detail=f"retrieved {len(documents)} authorized document(s)",
+            )
+            return self._answer_from_documents(question=request.question, documents=documents, trace=trace)
 
     def analyze_document(
         self,
@@ -77,64 +82,80 @@ class CareShieldAssistant:
         :param max_docs: Maximum chunks to retrieve.
         :return: Structured answer plus ingestion metadata.
         """
-        trace = tracing.Trace()
-        trace.add(step="request", status="ok", detail=f"received document={source_name} role={role}")
+        with tracing.start_span(
+            name="careshield.analyze_document",
+            attributes={
+                "careshield.role": role.value,
+                "careshield.source_name": source_name,
+                "careshield.vector_backend": self.vector_backend,
+            },
+        ):
+            trace = tracing.Trace()
+            trace.add(step="request", status="ok", detail=f"received document={source_name} role={role}")
 
-        parsed = retrieval.ingestion.parse_document_bytes(content=content, source_name=source_name)
-        trace.add(
-            step="document_parse",
-            status="ok",
-            detail=f"parser={parsed.parser} characters={len(parsed.text)}",
-        )
+            with tracing.start_span(name="careshield.document_parse"):
+                parsed = retrieval.ingestion.parse_document_bytes(content=content, source_name=source_name)
+            trace.add(
+                step="document_parse",
+                status="ok",
+                detail=f"parser={parsed.parser} characters={len(parsed.text)}",
+            )
 
-        documents = retrieval.ingestion.build_documents_from_text(
-            text=parsed.text,
-            source_name=source_name,
-            sensitivity=sensitivity,
-        )
-        trace.add(step="chunking", status="ok", detail=f"chunks={len(documents)} sensitivity={sensitivity}")
+            with tracing.start_span(name="careshield.chunking"):
+                documents = retrieval.ingestion.build_documents_from_text(
+                    text=parsed.text,
+                    source_name=source_name,
+                    sensitivity=sensitivity,
+                )
+            trace.add(
+                step="chunking",
+                status="ok",
+                detail=f"chunks={len(documents)} sensitivity={sensitivity}",
+            )
 
-        store = retrieval.vector_store.build_vector_store(
-            backend=self.vector_backend,
-            embedding_model=self.embedding_model,
-        )
-        store.add_documents(documents=documents)
-        trace.add(
-            step="vector_index",
-            status="ok",
-            detail=f"model={self.embedding_model.name} dimensions={self.embedding_model.dimensions}",
-        )
+            with tracing.start_span(name="careshield.vector_index"):
+                store = retrieval.vector_store.build_vector_store(
+                    backend=self.vector_backend,
+                    embedding_model=self.embedding_model,
+                )
+                store.add_documents(documents=documents)
+            trace.add(
+                step="vector_index",
+                status="ok",
+                detail=f"model={self.embedding_model.name} dimensions={self.embedding_model.dimensions}",
+            )
 
-        context = contracts.schema.UserContext(
-            role=role,
-            department=department,
-            purpose="synthetic_document_analysis",
-        )
-        trace.add(step="auth_context", status="ok", detail=f"context role={context.role}")
+            context = contracts.schema.UserContext(
+                role=role,
+                department=department,
+                purpose="synthetic_document_analysis",
+            )
+            trace.add(step="auth_context", status="ok", detail=f"context role={context.role}")
 
-        # The vector query is intentionally after the auth context is built, so
-        # retrieval can filter with role and sensitivity metadata.
-        retrieved = store.search(query=question, context=context, max_docs=max_docs)
-        trace.add(
-            step="vector_retrieval",
-            status="ok" if retrieved else "blocked",
-            detail=f"retrieved {len(retrieved)} authorized chunk(s)",
-        )
+            # The vector query is intentionally after the auth context is built, so
+            # retrieval can filter with role and sensitivity metadata.
+            with tracing.start_span(name="careshield.vector_retrieval"):
+                retrieved = store.search(query=question, context=context, max_docs=max_docs)
+            trace.add(
+                step="vector_retrieval",
+                status="ok" if retrieved else "blocked",
+                detail=f"retrieved {len(retrieved)} authorized chunk(s)",
+            )
 
-        ingest_report = contracts.schema.IngestReport(
-            source_name=source_name,
-            parser=parsed.parser,
-            characters=len(parsed.text),
-            chunks=len(documents),
-            embedding_model=self.embedding_model.name,
-            embedding_dimensions=self.embedding_model.dimensions,
-            indexed_vectors=store.size,
-        )
-        answer = self._answer_from_documents(question=question, documents=retrieved, trace=trace)
-        return contracts.schema.DocumentAnalysisResponse(
-            **answer.model_dump(mode="python"),
-            ingestion=ingest_report,
-        )
+            ingest_report = contracts.schema.IngestReport(
+                source_name=source_name,
+                parser=parsed.parser,
+                characters=len(parsed.text),
+                chunks=len(documents),
+                embedding_model=self.embedding_model.name,
+                embedding_dimensions=self.embedding_model.dimensions,
+                indexed_vectors=store.size,
+            )
+            answer = self._answer_from_documents(question=question, documents=retrieved, trace=trace)
+            return contracts.schema.DocumentAnalysisResponse(
+                **answer.model_dump(mode="python"),
+                ingestion=ingest_report,
+            )
 
     def _answer_from_documents(
         self,
@@ -153,28 +174,31 @@ class CareShieldAssistant:
         citations: list[contracts.schema.Evidence] = []
         redactions: set[str] = set()
 
-        for document in documents:
-            redacted_body = guardrails.pii.redact_pii(text=document.body)
-            redactions.update(redacted_body.redactions)
-            quote = _select_relevant_quote(text=redacted_body.text, question=question)
-            citations.append(retrieval.keyword.to_evidence(document=document, quote=quote))
+        with tracing.start_span(name="careshield.pii_redaction"):
+            for document in documents:
+                redacted_body = guardrails.pii.redact_pii(text=document.body)
+                redactions.update(redacted_body.redactions)
+                quote = _select_relevant_quote(text=redacted_body.text, question=question)
+                citations.append(retrieval.keyword.to_evidence(document=document, quote=quote))
 
         trace.add(step="pii_redaction", status="ok", detail=f"redactions={sorted(redactions) or ['none']}")
 
-        gateway_result = self.model_gateway.generate(question=question, evidence=citations)
+        with tracing.start_span(name="careshield.model_gateway"):
+            gateway_result = self.model_gateway.generate(question=question, evidence=citations)
         trace.add(
             step="model_gateway",
             status="ok",
             detail=f"provider={gateway_result.provider} model={gateway_result.model}",
         )
 
-        answer_redaction = guardrails.pii.redact_pii(text=gateway_result.raw_answer)
-        redactions.update(answer_redaction.redactions)
-        eval_report = guardrails.evals.evaluate_answer(
-            answer=answer_redaction.text,
-            evidence=citations,
-            redactions=sorted(redactions),
-        )
+        with tracing.start_span(name="careshield.evals"):
+            answer_redaction = guardrails.pii.redact_pii(text=gateway_result.raw_answer)
+            redactions.update(answer_redaction.redactions)
+            eval_report = guardrails.evals.evaluate_answer(
+                answer=answer_redaction.text,
+                evidence=citations,
+                redactions=sorted(redactions),
+            )
         trace.add(
             step="evals",
             status="ok" if eval_report.score >= 75 else "warning",

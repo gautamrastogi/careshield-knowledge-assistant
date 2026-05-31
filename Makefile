@@ -1,47 +1,49 @@
 .PHONY: install lint format format-check typecheck test evals security examples ci demo demo-ask demo-doc api ui docker-build
 
+UV := env -u VIRTUAL_ENV uv
+
 install:
-	uv sync --dev
+	@$(UV) sync --dev
 
 test:
-	uv run pytest -q
+	@$(UV) run pytest -q
 
 lint:
-	uv run ruff check .
+	@$(UV) run ruff check .
 
 format:
-	uv run ruff format .
+	@$(UV) run ruff format .
 
 format-check:
-	uv run ruff format --check .
+	@$(UV) run ruff format --check .
 
 typecheck:
-	uv run mypy src
+	@$(UV) run mypy src
 
 evals:
-	uv run pytest -q tests/test_golden_evals.py
+	@$(UV) run pytest -q tests/test_golden_evals.py
 
 security:
-	uv run pip-audit --skip-editable
+	@$(UV) run pip-audit --skip-editable
 
 examples:
-	uv run python tools/build_example_documents.py
+	@$(UV) run python tools/build_example_documents.py
 
 ci: lint format-check typecheck test evals security
 
 demo: demo-ask
 
 demo-ask:
-	uv run careshield ask --role nurse --question "Can I send a patient discharge summary to an external vendor?"
+	@$(UV) run careshield ask --role nurse --question "Can I send a patient discharge summary to an external vendor?"
 
 demo-doc:
-	uv run careshield analyze-doc --file examples/synthetic-care-report.md --role nurse --question "What must be redacted before vendor sharing?"
+	@$(UV) run careshield analyze-doc --file examples/synthetic-care-report.md --role nurse --question "What must be redacted before vendor sharing?"
 
 api:
-	uv run uvicorn careshield.interfaces.api:app --reload --host 127.0.0.1 --port 8088
+	@$(UV) run uvicorn careshield.interfaces.api:app --reload --host 127.0.0.1 --port 8088
 
 ui:
-	uv run streamlit run apps/streamlit_app.py
+	@$(UV) run streamlit run apps/streamlit_app.py
 
 docker-build:
-	docker build -t careshield-knowledge-assistant .
+	@docker build -t careshield-knowledge-assistant .
