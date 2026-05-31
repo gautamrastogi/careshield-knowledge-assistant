@@ -29,8 +29,10 @@ class HashEmbeddingModel:
         # Hashing keeps the demo deterministic and dependency-light while still
         # preserving the vector-search shape used by production systems.
         for token in keyword.tokenize(text=text):
-            digest = hashlib.blake2b(data=token.encode("utf-8"), digest_size=4).digest()
-            bucket = int.from_bytes(bytes=digest[:2], byteorder="big") % self.dimensions
+            # Python 3.12 does not accept the first blake2b argument as a
+            # keyword, so this one stdlib call intentionally stays positional.
+            digest = hashlib.blake2b(token.encode("utf-8"), digest_size=4).digest()
+            bucket = int.from_bytes(digest[:2], byteorder="big") % self.dimensions
             vector[bucket] += 1.0
 
         return _l2_normalize(vector=vector)
