@@ -23,4 +23,5 @@ COPY --from=builder /app/.venv /venv
 
 EXPOSE 8088
 
+ENTRYPOINT ["/venv/bin/python"]
 CMD ["-m", "uvicorn", "careshield.interfaces.api:app", "--host", "0.0.0.0", "--port", "8088"]
