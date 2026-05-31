@@ -25,4 +25,4 @@ jobs:
       - name: Build container image
         run: docker build -t careshield-knowledge-assistant .
       - name: Smoke test container import
-        run: docker run --rm careshield-knowledge-assistant python -c "import careshield; print(careshield.__version__)"
+        run: docker run --rm careshield-knowledge-assistant -c "import careshield; print(careshield.__version__)"

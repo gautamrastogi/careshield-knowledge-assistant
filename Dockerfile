@@ -23,4 +23,4 @@ COPY --from=builder /app/.venv /venv
 
 EXPOSE 8088
 
-CMD ["python", "-m", "uvicorn", "careshield.interfaces.api:app", "--host", "0.0.0.0", "--port", "8088"]
+CMD ["-m", "uvicorn", "careshield.interfaces.api:app", "--host", "0.0.0.0", "--port", "8088"]
