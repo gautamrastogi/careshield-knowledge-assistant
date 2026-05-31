@@ -1,12 +1,15 @@
 [project]
 name = "careshield-knowledge-assistant"
 version = "0.1.0"
-description = "A tiny governed GenAI/RAG assistant demo with policy-aware retrieval, PII redaction, structured outputs, evals, and traces."
+description = "A tiny governed GenAI/RAG assistant demo with document ingestion, vector retrieval, PII redaction, structured outputs, evals, and traces."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.115.0",
   "pydantic>=2.8.0",
+  "pypdf>=6.12.2",
+  "python-docx>=1.2.0",
+  "python-multipart>=0.0.29",
   "uvicorn>=0.30.0",
 ]
 

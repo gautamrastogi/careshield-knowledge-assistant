@@ -45,6 +45,16 @@ class Evidence(BaseModel):
     sensitivity: Sensitivity
 
 
+class IngestReport(BaseModel):
+    source_name: str
+    parser: str
+    characters: int = Field(ge=0)
+    chunks: int = Field(ge=0)
+    embedding_model: str
+    embedding_dimensions: int = Field(gt=0)
+    indexed_vectors: int = Field(ge=0)
+
+
 class AskRequest(BaseModel):
     role: Role
     question: str = Field(min_length=5, max_length=1_000)
@@ -88,3 +98,7 @@ class AnswerResponse(BaseModel):
         if self.confidence == "high" and not self.citations:
             raise ValueError("high confidence answers require at least one citation")
         return self
+
+
+class DocumentAnalysisResponse(AnswerResponse):
+    ingestion: IngestReport

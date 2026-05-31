@@ -5,6 +5,8 @@ A tiny, public-safe GenAI platform demo for synthetic healthcare policy Q&A.
 The goal is not to build a flashy chatbot. The goal is to demonstrate the
 production controls around a GenAI/RAG workflow:
 
+- document ingestion for text, Markdown, PDF, and Word files
+- chunking, local embeddings, and vector retrieval
 - policy-aware retrieval before model input
 - synthetic PII/PHI redaction
 - model gateway abstraction
@@ -30,14 +32,18 @@ CareShield shows a small but complete governed flow.
 
 ```mermaid
 flowchart LR
-    A[Question] --> B[User context]
-    B --> C[Policy filter]
-    C --> D[Allowed document retrieval]
-    D --> E[PII redaction]
-    E --> F[Model gateway mock]
-    F --> G[Pydantic response validation]
-    G --> H[Citation / grounding eval]
-    H --> I[Trace output]
+    A[PDF / DOCX / text report] --> B[Parse]
+    B --> C[Chunk]
+    C --> D[Embed]
+    D --> E[Vector index]
+    F[Question + user role] --> G[Policy filter]
+    E --> G
+    G --> H[Allowed vector retrieval]
+    H --> I[PII redaction]
+    I --> J[Model gateway mock]
+    J --> K[Pydantic response validation]
+    K --> L[Citation / grounding eval]
+    L --> M[Trace output]
 ```
 
 ## Example Use Case
@@ -63,6 +69,7 @@ CareShield:
 uv sync --dev
 make test
 make demo
+make demo-doc
 ```
 
 Or run directly:
@@ -77,6 +84,15 @@ List roles:
 
 ```bash
 uv run careshield roles
+```
+
+Analyze a local report-like document:
+
+```bash
+uv run careshield analyze-doc \
+  --file examples/synthetic-care-report.md \
+  --role nurse \
+  --question "What must be redacted before vendor sharing?"
 ```
 
 ## API / OpenAPI Demo
@@ -103,6 +119,24 @@ curl -s http://127.0.0.1:8088/ask \
     "question": "What should be redacted before sharing data with a vendor?"
   }' | python -m json.tool
 ```
+
+Analyze an uploaded document:
+
+```bash
+curl -s http://127.0.0.1:8088/documents/analyze \
+  -F "file=@examples/synthetic-care-report.md" \
+  -F "role=nurse" \
+  -F "sensitivity=clinical" \
+  -F "question=What must be redacted before vendor sharing?" \
+  | python -m json.tool
+```
+
+Supported demo input formats are `.txt`, `.md`, `.pdf`, and `.docx`.
+
+The local embedding model is `local-hash-embedding-v1`. In production this
+adapter boundary is where you would use Bedrock embeddings, OpenAI embeddings,
+Hugging Face embeddings, OpenSearch vector search, Aurora pgvector, or another
+approved internal vector service.
 
 ## What The Response Shows
 
@@ -140,6 +174,9 @@ src/careshield/
   api.py          FastAPI/OpenAPI wrapper
   cli.py          local demo entry point
   data.py         synthetic healthcare policy docs
+  ingestion.py    PDF/DOCX/text parsing and chunking
+  embeddings.py   deterministic local embedding adapter
+  vector_store.py in-memory vector DB adapter for CI-safe retrieval
   policy.py       role and sensitivity access checks
   retrieval.py    metadata-filtered retrieval
   pii.py          deterministic synthetic PII redaction
@@ -153,11 +190,11 @@ src/careshield/
 
 > I built CareShield as a small governed GenAI/RAG assistant using synthetic
 > healthcare policy documents. The important part is the platform control flow:
-> user context is extracted, policy filters documents before retrieval, sensitive
-> identifiers are redacted, the model call goes through a gateway abstraction,
-> the response is validated with Pydantic, and an eval report checks citations,
+> documents can be parsed, chunked, embedded, indexed, filtered by user context,
+> retrieved with authorization controls, redacted, sent through a gateway
+> abstraction, validated with Pydantic, and checked by evals for citations,
 > grounding, PII redaction, and policy safety. It is intentionally deterministic
-> so the security and quality controls are testable offline.
+> so the security and quality controls are testable offline and in CI.
 
 ## AWS Deployment Mapping
 
@@ -166,6 +203,8 @@ This repo runs locally by default. A production-style AWS mapping would be:
 ```text
 API Gateway
   -> Lambda / ECS service
+  -> parser workers for PDF / DOCX / text
+  -> embedding provider
   -> policy and retrieval service
   -> OpenSearch Serverless or Aurora pgvector
   -> Bedrock or approved model gateway
@@ -184,12 +223,15 @@ make test
 
 Tests cover:
 
+- document parsing for text and Word files
+- chunking and ingestion metadata
+- local embedding and vector retrieval
 - role-based policy filtering
 - retrieval pre-filtering
 - synthetic PII redaction
 - structured response validation
 - citation and grounding-style evals
-- FastAPI `/health` and `/ask`
+- FastAPI `/health`, `/ask`, and `/documents/analyze`
 
 ## Public-Safety Notes
 
