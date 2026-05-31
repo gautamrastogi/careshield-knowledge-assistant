@@ -1,0 +1,44 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /MediaBox [0 0 612 792] /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 967 >>
+stream
+BT /F1 10 Tf 72 740 Td 14 TL
+(Synthetic Care Sharing Report Care coordination teams may prepare a de-identified) Tj T*
+(discharge summary for an approved external vendor only after compliance approval.) Tj T*
+(The report contains synthetic sensitive fields: Patient Jane Example,) Tj T*
+(jane.example@example.invalid, +1-555-0100, MRN MRN-000-EXAMPLE, insurance ID) Tj T*
+(INS-000-EXAMPLE, and diagnosis asthma. Before vendor sharing, teams must redact) Tj T*
+(patient names, phone numbers, email addresses, medical record numbers, insurance) Tj T*
+(identifiers, and diagnosis details. The approved model gateway must validate) Tj T*
+(structured responses, keep audit traces, cite retrieved evidence, and avoid) Tj T*
+(sending restricted fields to public models. Compliance officers may review full) Tj T*
+(synthetic reports. Nurses and doctors may use clinical guidance. External vendors) Tj T*
+(may receive only approved public or de-identified summaries.) Tj T*
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000311 00000 n 
+trailer
+<< /Root 1 0 R /Size 6 >>
+startxref
+1329
+%%EOF

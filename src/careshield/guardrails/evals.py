@@ -1,5 +1,5 @@
-import careshield.guardrails.pii as pii
 from careshield import contracts
+from careshield.guardrails import pii
 
 GROUNDEDNESS_TERMS = ["vendor", "redact", "model gateway", "clinical", "billing", "approved"]
 

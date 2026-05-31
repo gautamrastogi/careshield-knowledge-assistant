@@ -1,15 +1,7 @@
 import typing
 
-import careshield.guardrails.evals as evals
-import careshield.guardrails.pii as pii
-import careshield.pipeline.gateway as gateway
-import careshield.pipeline.tracing as tracing
-import careshield.retrieval.data as data
-import careshield.retrieval.embeddings as embeddings
-import careshield.retrieval.ingestion as ingestion
-import careshield.retrieval.keyword as keyword
-import careshield.retrieval.vector_store as vector_store
-from careshield import contracts
+from careshield import contracts, guardrails, retrieval
+from careshield.pipeline import gateway, tracing
 
 
 class CareShieldAssistant:
@@ -19,7 +11,7 @@ class CareShieldAssistant:
         self,
         *,
         model_gateway: gateway.MockModelGateway | None = None,
-        embedding_model: embeddings.HashEmbeddingModel | None = None,
+        embedding_model: retrieval.embeddings.HashEmbeddingModel | None = None,
         vector_backend: str = "chroma",
     ) -> None:
         """Create the assistant service.
@@ -29,7 +21,7 @@ class CareShieldAssistant:
         :param vector_backend: Vector store backend used for uploaded documents.
         """
         self.model_gateway = model_gateway or gateway.MockModelGateway()
-        self.embedding_model = embedding_model or embeddings.HashEmbeddingModel()
+        self.embedding_model = embedding_model or retrieval.embeddings.HashEmbeddingModel()
         self.vector_backend = vector_backend
 
     def ask(self, *, request: contracts.schema.AskRequest) -> contracts.schema.AnswerResponse:
@@ -50,10 +42,10 @@ class CareShieldAssistant:
 
         # Built-in policy Q&A uses deterministic keyword retrieval. Uploaded
         # documents use the vector path in analyze_document.
-        documents = keyword.retrieve(
+        documents = retrieval.keyword.retrieve(
             question=request.question,
             context=context,
-            documents=data.DOCUMENTS,
+            documents=retrieval.data.DOCUMENTS,
             max_docs=request.max_docs,
         )
         trace.add(
@@ -88,21 +80,21 @@ class CareShieldAssistant:
         trace = tracing.Trace()
         trace.add(step="request", status="ok", detail=f"received document={source_name} role={role}")
 
-        parsed = ingestion.parse_document_bytes(content=content, source_name=source_name)
+        parsed = retrieval.ingestion.parse_document_bytes(content=content, source_name=source_name)
         trace.add(
             step="document_parse",
             status="ok",
             detail=f"parser={parsed.parser} characters={len(parsed.text)}",
         )
 
-        documents = ingestion.build_documents_from_text(
+        documents = retrieval.ingestion.build_documents_from_text(
             text=parsed.text,
             source_name=source_name,
             sensitivity=sensitivity,
         )
         trace.add(step="chunking", status="ok", detail=f"chunks={len(documents)} sensitivity={sensitivity}")
 
-        store = vector_store.build_vector_store(
+        store = retrieval.vector_store.build_vector_store(
             backend=self.vector_backend,
             embedding_model=self.embedding_model,
         )
@@ -160,10 +152,10 @@ class CareShieldAssistant:
         redactions: set[str] = set()
 
         for document in documents:
-            redacted_body = pii.redact_pii(text=document.body)
+            redacted_body = guardrails.pii.redact_pii(text=document.body)
             redactions.update(redacted_body.redactions)
             quote = _select_relevant_quote(text=redacted_body.text, question=question)
-            citations.append(keyword.to_evidence(document=document, quote=quote))
+            citations.append(retrieval.keyword.to_evidence(document=document, quote=quote))
 
         trace.add(step="pii_redaction", status="ok", detail=f"redactions={sorted(redactions) or ['none']}")
 
@@ -174,9 +166,9 @@ class CareShieldAssistant:
             detail=f"provider={gateway_result.provider} model={gateway_result.model}",
         )
 
-        answer_redaction = pii.redact_pii(text=gateway_result.raw_answer)
+        answer_redaction = guardrails.pii.redact_pii(text=gateway_result.raw_answer)
         redactions.update(answer_redaction.redactions)
-        eval_report = evals.evaluate_answer(
+        eval_report = guardrails.evals.evaluate_answer(
             answer=answer_redaction.text,
             evidence=citations,
             redactions=sorted(redactions),
@@ -223,13 +215,13 @@ def _select_relevant_quote(*, text: str, question: str) -> str:
     :param question: User question.
     :return: Short quote to use as citation evidence.
     """
-    question_terms = keyword.tokenize(text=question)
+    question_terms = retrieval.keyword.tokenize(text=question)
     sentences = [sentence.strip() for sentence in text.split(". ") if sentence.strip()]
     if not sentences:
         return text[:240].strip()
 
     scored = [
-        (len(question_terms & keyword.tokenize(text=sentence)), index, sentence)
+        (len(question_terms & retrieval.keyword.tokenize(text=sentence)), index, sentence)
         for index, sentence in enumerate(sentences)
     ]
     scored.sort(key=lambda item: (item[0], -item[1]), reverse=True)

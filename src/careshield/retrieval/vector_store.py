@@ -2,9 +2,7 @@ import typing
 
 import pydantic
 
-import careshield.guardrails.policy as policy
-import careshield.retrieval.embeddings as embeddings
-from careshield import contracts
+from careshield import contracts, guardrails, retrieval
 
 
 class VectorRecord(pydantic.BaseModel):
@@ -71,12 +69,12 @@ class VectorStore(typing.Protocol):
 class InMemoryVectorStore:
     """Tiny vector DB adapter used by the demo and tests."""
 
-    def __init__(self, *, embedding_model: embeddings.HashEmbeddingModel | None = None) -> None:
+    def __init__(self, *, embedding_model: retrieval.embeddings.HashEmbeddingModel | None = None) -> None:
         """Create a local vector store.
 
         :param embedding_model: Embedding adapter used to vectorize text.
         """
-        self.embedding_model = embedding_model or embeddings.HashEmbeddingModel()
+        self.embedding_model = embedding_model or retrieval.embeddings.HashEmbeddingModel()
         self._records: list[VectorRecord] = []
 
     @property
@@ -116,7 +114,7 @@ class InMemoryVectorStore:
         """
         allowed_ids = {
             document.id
-            for document in policy.filter_allowed_documents(
+            for document in guardrails.policy.filter_allowed_documents(
                 context=context,
                 documents=[record.document for record in self._records],
             )
@@ -127,7 +125,7 @@ class InMemoryVectorStore:
         # become prompt evidence even if they are semantically similar.
         scored = [
             (
-                embeddings.cosine_similarity(left=query_vector, right=record.vector),
+                retrieval.embeddings.cosine_similarity(left=query_vector, right=record.vector),
                 record.document,
             )
             for record in self._records
@@ -149,7 +147,7 @@ def _document_text(*, document: contracts.schema.Document) -> str:
 def build_vector_store(
     *,
     backend: str,
-    embedding_model: embeddings.HashEmbeddingModel,
+    embedding_model: retrieval.embeddings.HashEmbeddingModel,
 ) -> VectorStore:
     """Create a vector store implementation by name.
 
@@ -160,7 +158,7 @@ def build_vector_store(
     if backend == "memory":
         return InMemoryVectorStore(embedding_model=embedding_model)
     if backend == "chroma":
-        import careshield.retrieval.chroma_store as chroma_store
+        from careshield.retrieval import chroma_store
 
         return chroma_store.ChromaVectorStore(embedding_model=embedding_model)
     raise ValueError(f"unsupported vector store backend: {backend}")

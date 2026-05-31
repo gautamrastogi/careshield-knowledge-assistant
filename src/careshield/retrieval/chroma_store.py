@@ -4,9 +4,7 @@ import uuid
 import chromadb
 import chromadb.config
 
-import careshield.guardrails.policy as policy
-import careshield.retrieval.embeddings as embeddings
-from careshield import contracts
+from careshield import contracts, guardrails, retrieval
 
 
 class ChromaVectorStore:
@@ -15,7 +13,7 @@ class ChromaVectorStore:
     def __init__(
         self,
         *,
-        embedding_model: embeddings.HashEmbeddingModel | None = None,
+        embedding_model: retrieval.embeddings.HashEmbeddingModel | None = None,
         collection_name: str | None = None,
     ) -> None:
         """Create an ephemeral Chroma collection.
@@ -23,7 +21,7 @@ class ChromaVectorStore:
         :param embedding_model: Embedding adapter used to vectorize text.
         :param collection_name: Optional Chroma collection name.
         """
-        self.embedding_model = embedding_model or embeddings.HashEmbeddingModel()
+        self.embedding_model = embedding_model or retrieval.embeddings.HashEmbeddingModel()
         self._documents_by_id: dict[str, contracts.schema.Document] = {}
         safe_name = collection_name or f"careshield-{uuid.uuid4().hex[:12]}"
         settings = chromadb.config.Settings(anonymized_telemetry=False)
@@ -92,7 +90,11 @@ class ChromaVectorStore:
             )
             for index, doc_id in enumerate(ids)
         ]
-        return policy.filter_allowed_documents(context=context, documents=documents_from_chroma)[:max_docs]
+        allowed_documents = guardrails.policy.filter_allowed_documents(
+            context=context,
+            documents=documents_from_chroma,
+        )
+        return allowed_documents[:max_docs]
 
 
 def _where_filter_from_context(*, context: contracts.schema.UserContext) -> dict[str, object]:
@@ -102,7 +104,7 @@ def _where_filter_from_context(*, context: contracts.schema.UserContext) -> dict
     :return: Chroma ``where`` filter for role and sensitivity.
     """
     allowed_sensitivities = [
-        sensitivity.value for sensitivity in policy.ROLE_SENSITIVITY_ALLOWLIST[context.role]
+        sensitivity.value for sensitivity in guardrails.policy.ROLE_SENSITIVITY_ALLOWLIST[context.role]
     ]
     return {
         "$and": [

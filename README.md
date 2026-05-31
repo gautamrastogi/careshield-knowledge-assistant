@@ -71,8 +71,8 @@ CareShield:
 
 ```bash
 uv sync --dev
-make test
-make demo
+make ci
+make demo-ask
 make demo-doc
 ```
 
@@ -137,6 +137,12 @@ curl -s http://127.0.0.1:8088/documents/analyze \
 
 Supported input formats are `.txt`, `.md`, `.pdf`, and `.docx`.
 
+More examples:
+
+- [docs/setup-guide.md](docs/setup-guide.md)
+- [docs/examples.md](docs/examples.md)
+- [docs/architecture.md](docs/architecture.md)
+
 The default vector backend is Chroma with a deterministic local embedding model,
 `local-hash-embedding-v1`. This keeps the app runnable without API keys while
 still teaching the vector DB workflow. The adapter boundary is where you can
@@ -182,18 +188,18 @@ src/careshield/
   retrieval/       synthetic data, parsing, chunking, embeddings, Chroma adapter
 ```
 
-## Learning Talk Track
+## Project Guide
 
-> I built CareShield as a small governed GenAI/RAG assistant using synthetic
-> healthcare documents. The important part is the platform control flow:
-> documents can be parsed, chunked, embedded, indexed, filtered by user context,
-> retrieved with authorization controls, redacted, sent through a gateway
-> abstraction, validated with Pydantic, and checked by evals for citations,
-> grounding, PII redaction, and policy safety. It is intentionally deterministic
-> so the security and quality controls are testable offline and in CI, while the
-> vector layer uses Chroma so I can learn a real GenAI storage pattern.
+CareShield is a small governed GenAI/RAG assistant using synthetic healthcare
+documents. The important part is the platform control flow: documents can be
+parsed, chunked, embedded, indexed, filtered by user context, retrieved with
+authorization controls, redacted, sent through a gateway abstraction, validated
+with Pydantic, and checked by evals for citations, grounding, PII redaction,
+and policy safety. It is intentionally deterministic so the security and
+quality controls are testable offline and in CI, while the vector layer uses
+Chroma to teach a real GenAI storage pattern.
 
-More detail: [docs/learning-talk-track.md](docs/learning-talk-track.md)
+Read the full architecture guide: [docs/architecture.md](docs/architecture.md)
 
 ## AWS Deployment Mapping
 
@@ -223,7 +229,7 @@ make ci
 
 Tests cover:
 
-- document parsing for text and Word files
+- document parsing for text, Markdown, PDF, and Word files
 - chunking and ingestion metadata
 - local embedding and vector retrieval
 - role-based policy filtering
@@ -233,7 +239,7 @@ Tests cover:
 - citation and grounding-style evals
 - FastAPI `/health`, `/ask`, and `/documents/analyze`
 - golden eval cases from `evals/golden_dataset.json`
-- Ruff lint/format checks and mypy type checks in CI
+- Ruff lint/format checks, mypy type checks, and Docker build checks in CI
 
 ## Public-Safety Notes
 

@@ -1,21 +1,19 @@
-# Synthetic Care Coordination Report
+# Synthetic Care Sharing Report
 
-This sample document is synthetic and safe for public demos.
+Care coordination teams may prepare a de-identified discharge summary for an
+approved external vendor only after compliance approval.
 
-Care teams may summarize a discharge plan for approved follow-up providers.
-Before sharing outside the organization, the summary must be de-identified and
-limited to the minimum necessary operational context.
+The report contains synthetic sensitive fields: Patient Jane Example,
+jane.example@example.invalid, +1-555-0100, MRN MRN-000-EXAMPLE, insurance ID
+INS-000-EXAMPLE, and diagnosis asthma.
 
-Do not include patient names, phone numbers, email addresses, medical record
-numbers, insurance identifiers, or diagnosis details unless a compliance
-approval explicitly authorizes the disclosure.
+Before vendor sharing, teams must redact patient names, phone numbers, email
+addresses, medical record numbers, insurance identifiers, and diagnosis details.
 
-Synthetic unsafe example for redaction testing: Patient Jane Example,
-jane.example@example.invalid, +1-555-0100, MRN MRN-000-EXAMPLE,
-Insurance ID INS-000-EXAMPLE, diagnosis Type 2 diabetes.
+The approved model gateway must validate structured responses, keep audit
+traces, cite retrieved evidence, and avoid sending restricted fields to public
+models.
 
-The approved GenAI workflow is to parse the document, split it into chunks,
-embed those chunks, filter retrieval by user role and document sensitivity,
-redact sensitive identifiers, call the approved model gateway, validate the
-structured answer, and run citation, grounding, policy, and PII checks before
-returning the result.
+Compliance officers may review full synthetic reports. Nurses and doctors may
+use clinical guidance. External vendors may receive only approved public or
+de-identified summaries.

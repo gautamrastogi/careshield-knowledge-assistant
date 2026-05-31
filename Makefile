@@ -1,4 +1,4 @@
-.PHONY: install lint format typecheck test evals ci demo demo-doc api docker-build
+.PHONY: install lint format format-check typecheck test evals examples ci demo demo-ask demo-doc api docker-build
 
 install:
 	uv sync --dev
@@ -21,9 +21,14 @@ typecheck:
 evals:
 	uv run pytest -q tests/test_golden_evals.py
 
-ci: lint format-check typecheck test
+examples:
+	uv run python tools/build_example_documents.py
 
-demo:
+ci: lint format-check typecheck test evals
+
+demo: demo-ask
+
+demo-ask:
 	uv run careshield ask --role nurse --question "Can I send a patient discharge summary to an external vendor?"
 
 demo-doc:

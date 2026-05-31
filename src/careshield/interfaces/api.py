@@ -1,9 +1,7 @@
 import fastapi
 
 import careshield
-import careshield.pipeline.assistant as assistant_service
-import careshield.retrieval.ingestion as ingestion
-from careshield import contracts
+from careshield import contracts, pipeline, retrieval
 
 app = fastapi.FastAPI(
     title="CareShield Knowledge Assistant",
@@ -14,7 +12,7 @@ app = fastapi.FastAPI(
         "outputs, evals, and traces."
     ),
 )
-assistant = assistant_service.CareShieldAssistant()
+assistant = pipeline.assistant.CareShieldAssistant()
 
 
 @app.get("/health")
@@ -58,7 +56,7 @@ async def analyze_document(
     """
     content = await file.read()
     try:
-        document_assistant = assistant_service.CareShieldAssistant(vector_backend=vector_backend)
+        document_assistant = pipeline.assistant.CareShieldAssistant(vector_backend=vector_backend)
         return document_assistant.analyze_document(
             content=content,
             source_name=file.filename or "uploaded-document.txt",
@@ -67,5 +65,5 @@ async def analyze_document(
             sensitivity=sensitivity,
             max_docs=max_docs,
         )
-    except ingestion.DocumentParseError as exc:
+    except retrieval.ingestion.DocumentParseError as exc:
         raise fastapi.HTTPException(status_code=422, detail=str(exc)) from exc

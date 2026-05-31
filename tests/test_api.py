@@ -1,6 +1,6 @@
 import fastapi.testclient
 
-import careshield.interfaces.api as api
+from careshield.interfaces import api
 
 
 def test_health_endpoint() -> None:

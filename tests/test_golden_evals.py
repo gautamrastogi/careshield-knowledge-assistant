@@ -4,8 +4,7 @@ import typing
 
 import pytest
 
-import careshield.pipeline.assistant as assistant_service
-from careshield import contracts
+from careshield import contracts, pipeline
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DATASET_PATH = ROOT / "evals" / "golden_dataset.json"
@@ -38,7 +37,7 @@ def load_golden_cases() -> list[GoldenCase]:
 @pytest.mark.parametrize("case", load_golden_cases(), ids=lambda case: case["id"])
 def test_golden_eval_case(case: GoldenCase) -> None:
     """Verify golden answers keep citations, redactions, and eval scores stable."""
-    assistant = assistant_service.CareShieldAssistant()
+    assistant = pipeline.assistant.CareShieldAssistant()
     response = _run_case(assistant=assistant, case=case)
     citation_ids = {citation.doc_id for citation in response.citations}
 
@@ -54,7 +53,7 @@ def test_golden_eval_case(case: GoldenCase) -> None:
 
 def _run_case(
     *,
-    assistant: assistant_service.CareShieldAssistant,
+    assistant: pipeline.assistant.CareShieldAssistant,
     case: GoldenCase,
 ) -> contracts.schema.AnswerResponse:
     """Run one golden eval case.

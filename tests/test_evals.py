@@ -1,10 +1,9 @@
-import careshield.guardrails.evals as evals
-from careshield import contracts
+from careshield import contracts, guardrails
 
 
 def test_eval_flags_missing_citations_and_weak_grounding() -> None:
     """Verify evals fail uncited answers."""
-    report = evals.evaluate_answer(
+    report = guardrails.evals.evaluate_answer(
         answer="This answer has no sources.",
         evidence=[],
         redactions=[],
@@ -24,7 +23,7 @@ def test_eval_passes_grounded_redacted_answer() -> None:
             sensitivity=contracts.schema.Sensitivity.public,
         )
     ]
-    report = evals.evaluate_answer(
+    report = guardrails.evals.evaluate_answer(
         answer=(
             "Only approved de-identified summaries may be shared with vendors. Sources: Vendor Safe Summary."
         ),

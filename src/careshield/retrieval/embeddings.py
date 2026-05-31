@@ -1,7 +1,7 @@
 import hashlib
 import math
 
-import careshield.retrieval.keyword as keyword
+from careshield.retrieval import keyword
 
 
 class HashEmbeddingModel:

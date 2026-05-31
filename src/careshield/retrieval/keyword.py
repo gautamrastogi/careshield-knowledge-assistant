@@ -1,7 +1,6 @@
 import re
 
-import careshield.guardrails.policy as policy
-from careshield import contracts
+from careshield import contracts, guardrails
 
 STOP_WORDS = {
     "a",
@@ -63,7 +62,7 @@ def retrieve(
     :param max_docs: Maximum documents to return.
     :return: Relevant documents after policy filtering and ranking.
     """
-    allowed_documents = policy.filter_allowed_documents(context=context, documents=documents)
+    allowed_documents = guardrails.policy.filter_allowed_documents(context=context, documents=documents)
     scored = [
         (score_document(question=question, document=document), document) for document in allowed_documents
     ]

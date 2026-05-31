@@ -3,13 +3,14 @@ import pathlib
 import docx
 import pytest
 
-import careshield.retrieval.ingestion as ingestion
-from careshield import contracts
+from careshield import contracts, retrieval
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
 def test_parse_text_document_bytes() -> None:
     """Verify text parsing."""
-    parsed = ingestion.parse_document_bytes(
+    parsed = retrieval.ingestion.parse_document_bytes(
         content=b"Clinical report says vendor sharing requires redaction and approval.",
         source_name="report.txt",
     )
@@ -25,7 +26,7 @@ def test_parse_docx_document_file(tmp_path: pathlib.Path) -> None:
     document.add_paragraph("Vendor sharing requires de-identification and audit trail.")
     document.save(str(path))
 
-    parsed = ingestion.parse_document_file(path=path)
+    parsed = retrieval.ingestion.parse_document_file(path=path)
 
     assert parsed.parser == "python-docx"
     assert "Vendor sharing requires de-identification" in parsed.text
@@ -33,7 +34,7 @@ def test_parse_docx_document_file(tmp_path: pathlib.Path) -> None:
 
 def test_parse_pdf_document_bytes() -> None:
     """Verify PDF parsing."""
-    parsed = ingestion.parse_document_bytes(
+    parsed = retrieval.ingestion.parse_document_bytes(
         content=_minimal_pdf_bytes(text="Vendor sharing requires redaction and compliance approval."),
         source_name="care-report.pdf",
     )
@@ -42,20 +43,37 @@ def test_parse_pdf_document_bytes() -> None:
     assert "Vendor sharing requires redaction" in parsed.text
 
 
+@pytest.mark.parametrize(
+    ("filename", "parser"),
+    [
+        ("synthetic-care-report.md", "utf8-text"),
+        ("synthetic-care-report.pdf", "pypdf"),
+        ("synthetic-care-report.docx", "python-docx"),
+    ],
+)
+def test_parse_tracked_example_documents(filename: str, parser: str) -> None:
+    """Verify all shipped example document formats are parseable."""
+    parsed = retrieval.ingestion.parse_document_file(path=ROOT / "examples" / filename)
+
+    assert parsed.parser == parser
+    assert "vendor sharing" in parsed.text.lower()
+    assert "model gateway" in parsed.text.lower()
+
+
 def test_unsupported_document_type_is_rejected() -> None:
     """Verify unsupported parser types fail clearly."""
-    with pytest.raises(expected_exception=ingestion.DocumentParseError):
-        ingestion.parse_document_bytes(content=b"hello world", source_name="report.csv")
+    with pytest.raises(expected_exception=retrieval.ingestion.DocumentParseError):
+        retrieval.ingestion.parse_document_bytes(content=b"hello world", source_name="report.csv")
 
 
 def test_chunking_and_document_building_preserve_policy_metadata() -> None:
     """Verify chunks keep sensitivity and role metadata."""
-    chunks = ingestion.chunk_text(
+    chunks = retrieval.ingestion.chunk_text(
         text=" ".join(["redaction"] * 220),
         max_words=50,
         overlap_words=10,
     )
-    documents = ingestion.build_documents_from_text(
+    documents = retrieval.ingestion.build_documents_from_text(
         text="Clinical report requires redaction before external sharing. " * 20,
         source_name="care-report.md",
         sensitivity=contracts.schema.Sensitivity.clinical,

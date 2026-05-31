@@ -2,8 +2,7 @@ import argparse
 import json
 import pathlib
 
-import careshield.pipeline.assistant as assistant_service
-from careshield import contracts
+from careshield import contracts, pipeline
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -60,7 +59,7 @@ def main() -> None:
         return
 
     if args.command == "analyze-doc":
-        assistant = assistant_service.CareShieldAssistant(vector_backend=args.vector_backend)
+        assistant = pipeline.assistant.CareShieldAssistant(vector_backend=args.vector_backend)
         path = pathlib.Path(args.file)
         analysis_response = assistant.analyze_document(
             content=path.read_bytes(),
@@ -73,7 +72,7 @@ def main() -> None:
         print(json.dumps(obj=analysis_response.model_dump(mode="json"), indent=2))
         return
 
-    assistant = assistant_service.CareShieldAssistant()
+    assistant = pipeline.assistant.CareShieldAssistant()
     request = contracts.schema.AskRequest(
         role=contracts.schema.Role(args.role),
         question=args.question,
