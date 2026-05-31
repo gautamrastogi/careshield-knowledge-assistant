@@ -151,6 +151,43 @@ class GatewayResult(pydantic.BaseModel):
     raw_answer: str = pydantic.Field(min_length=1)
 
 
+class BedrockGatewayConfig(pydantic.BaseModel):
+    """Configuration for the AWS Bedrock Converse gateway adapter."""
+
+    model_config = pydantic.ConfigDict(
+        frozen=True,
+        json_schema_extra={
+            "examples": [
+                {
+                    "region_name": "eu-central-1",
+                    "model_id": "anthropic.claude-3-5-sonnet-20241022-v2:0",
+                    "guardrail_identifier": "care-guardrail",
+                    "guardrail_version": "1",
+                    "max_tokens": 400,
+                    "temperature": 0.0,
+                }
+            ]
+        },
+    )
+
+    region_name: str = pydantic.Field(default="eu-central-1", min_length=3)
+    model_id: str = pydantic.Field(min_length=3)
+    guardrail_identifier: str | None = pydantic.Field(default=None, min_length=1)
+    guardrail_version: str | None = pydantic.Field(default=None, min_length=1)
+    max_tokens: int = pydantic.Field(default=400, ge=1, le=4_096)
+    temperature: float = pydantic.Field(default=0.0, ge=0.0, le=1.0)
+
+    @pydantic.model_validator(mode="after")
+    def guardrail_requires_version(self) -> typing.Self:
+        """Require guardrail identifier and version to be configured together.
+
+        :return: The validated Bedrock gateway config.
+        """
+        if bool(self.guardrail_identifier) != bool(self.guardrail_version):
+            raise ValueError("guardrail_identifier and guardrail_version must be set together")
+        return self
+
+
 class EvalReport(pydantic.BaseModel):
     """Deterministic quality and safety checks for an answer."""
 

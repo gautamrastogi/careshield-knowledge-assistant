@@ -5,8 +5,10 @@ description = "A tiny governed GenAI/RAG learning app with document ingestion, v
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-  "chromadb>=1.5.9",
+  "boto3>=1.43.18",
+  "chromadb>=0.6.3,<1.0.0",
   "fastapi>=0.115.0",
+  "posthog<6",
   "pydantic>=2.8.0",
   "pypdf>=6.12.2",
   "python-docx>=1.2.0",
@@ -37,6 +39,7 @@ pythonpath = ["src"]
 testpaths = ["tests"]
 filterwarnings = [
   "ignore::starlette.exceptions.StarletteDeprecationWarning",
+  "ignore:Accessing the 'model_fields' attribute on the instance is deprecated:pydantic.PydanticDeprecatedSince211",
 ]
 
 [tool.ruff]
@@ -70,5 +73,5 @@ warn_unreachable = true
 show_error_codes = true
 
 [[tool.mypy.overrides]]
-module = ["docx", "pypdf", "chromadb", "chromadb.*"]
+module = ["boto3", "docx", "pypdf", "chromadb", "chromadb.*"]
 ignore_missing_imports = true

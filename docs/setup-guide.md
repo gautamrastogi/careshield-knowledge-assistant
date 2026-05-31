@@ -84,6 +84,30 @@ Then call:
 curl -s http://127.0.0.1:8088/health | python -m json.tool
 ```
 
+## AWS Bedrock Gateway Shape
+
+The default local path uses `MockModelGateway`, so no AWS credentials are
+required. The project also includes a `BedrockConverseGateway` adapter to show
+how the same application boundary maps to AWS Bedrock Runtime.
+
+Minimal Python shape:
+
+```python
+from careshield import contracts, pipeline
+
+gateway = pipeline.gateway.BedrockConverseGateway(
+    config=contracts.schema.BedrockGatewayConfig(
+        region_name="eu-central-1",
+        model_id="anthropic.claude-3-5-sonnet-20241022-v2:0",
+        guardrail_identifier="your-guardrail-id",
+        guardrail_version="1",
+    )
+)
+```
+
+The adapter uses `boto3.client("bedrock-runtime").converse(...)`. Tests mock the
+client, so CI never calls AWS.
+
 ## Rebuild Example Documents
 
 The repository includes Markdown, PDF, and DOCX synthetic examples. Rebuild

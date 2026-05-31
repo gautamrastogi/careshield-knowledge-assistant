@@ -57,6 +57,47 @@ CareShield filters evidence before the model gateway is called:
 
 This keeps the model from seeing unauthorized chunks in the first place.
 
+## Gateway Boundary
+
+```mermaid
+flowchart LR
+    A[Assistant pipeline] --> B[ModelGateway protocol]
+    B --> C[MockModelGateway]
+    B --> D[BedrockConverseGateway]
+    C --> E[Deterministic local tests]
+    D --> F[AWS Bedrock Runtime Converse]
+    F --> G[Optional Bedrock Guardrails]
+```
+
+The mock gateway is the default because deterministic tests should not need API
+keys, network access, or changing model behavior. The Bedrock gateway shows the
+same boundary mapped to AWS:
+
+- `boto3.client("bedrock-runtime")`
+- `converse(...)` for synchronous model calls
+- `guardrailConfig` for Bedrock Guardrails
+- provider output converted back into the same `GatewayResult` contract
+
+Application policy still runs before the Bedrock adapter. Bedrock Guardrails are
+an extra provider-side control, not a replacement for app-level authorization,
+redaction, schemas, tests, or evals.
+
+## AWS Control Plane View
+
+```mermaid
+flowchart TD
+    A[FastAPI or CLI request] --> B[Role and purpose context]
+    B --> C[Policy and redaction code]
+    C --> D[Chroma or future OpenSearch retrieval]
+    D --> E[Bedrock Runtime Converse]
+    E --> F[Bedrock Guardrails]
+    F --> G[Pydantic schema validation]
+    G --> H[Eval report and trace]
+    I[IAM] -. controls .-> E
+    J[KMS / Secrets Manager] -. protects config .-> E
+    K[CloudWatch / OpenTelemetry] -. observes .-> H
+```
+
 ## Eval Strategy
 
 The evals are intentionally deterministic:

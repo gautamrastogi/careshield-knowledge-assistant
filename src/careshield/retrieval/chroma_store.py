@@ -25,6 +25,9 @@ class ChromaVectorStore:
         self._documents_by_id: dict[str, contracts.schema.Document] = {}
         safe_name = collection_name or f"careshield-{uuid.uuid4().hex[:12]}"
         settings = chromadb.config.Settings(anonymized_telemetry=False)
+
+        # Ephemeral Chroma keeps the repository simple: real vector DB behavior
+        # without requiring a service or persistent local state.
         self._client: typing.Any = chromadb.EphemeralClient(settings=settings)
         self._collection: typing.Any = self._client.get_or_create_collection(name=safe_name)
 
@@ -69,10 +72,14 @@ class ChromaVectorStore:
         :param max_docs: Maximum chunks to return.
         :return: Authorized chunks ranked by vector similarity.
         """
+        if self.size == 0:
+            return []
+
+        result_count = min(max_docs, self.size)
         where_filter = _where_filter_from_context(context=context)
         result = self._collection.query(
             query_embeddings=[self.embedding_model.embed(text=query)],
-            n_results=max_docs,
+            n_results=result_count,
             where=where_filter,
         )
         ids = typing.cast(list[str], result.get("ids", [[]])[0])
@@ -106,6 +113,9 @@ def _where_filter_from_context(*, context: contracts.schema.UserContext) -> dict
     allowed_sensitivities = [
         sensitivity.value for sensitivity in guardrails.policy.ROLE_SENSITIVITY_ALLOWLIST[context.role]
     ]
+
+    # Chroma gets the same policy metadata as the Python filter, so the vector
+    # search itself can avoid returning obviously unauthorized chunks.
     return {
         "$and": [
             {f"role_{context.role.value}": True},

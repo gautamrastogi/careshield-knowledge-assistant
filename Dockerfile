@@ -2,8 +2,8 @@ FROM cgr.dev/chainguard/python:latest-dev AS builder
 
 WORKDIR /app
 
-RUN python -m venv /venv
-ENV PATH="/venv/bin:${PATH}"
+RUN python -m venv /app/.venv
+ENV PATH="/app/.venv/bin:${PATH}"
 
 COPY pyproject.toml README.md ./
 COPY src ./src
@@ -19,7 +19,7 @@ ENV PATH="/venv/bin:${PATH}" \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
-COPY --from=builder /venv /venv
+COPY --from=builder /app/.venv /venv
 
 EXPOSE 8088
 

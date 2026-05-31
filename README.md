@@ -11,7 +11,7 @@ real RAG systems:
 - chunking, local embeddings, Chroma vector storage, and retrieval
 - policy-aware retrieval before model input
 - synthetic PII/PHI redaction
-- model gateway abstraction
+- model gateway abstraction with mock and AWS Bedrock adapter examples
 - Pydantic structured responses
 - citation and groundedness-style evals
 - golden eval dataset in CI
@@ -44,11 +44,16 @@ flowchart LR
     E --> G
     G --> H[Allowed vector retrieval]
     H --> I[PII redaction]
-    I --> J[Model gateway mock]
+    I --> J[Model gateway]
     J --> K[Pydantic response validation]
     K --> L[Citation / grounding eval]
     L --> M[Trace output]
 ```
+
+The default model path is deterministic and offline. The code also includes an
+AWS Bedrock Runtime Converse adapter so the same gateway boundary can be mapped
+to Bedrock and Bedrock Guardrails when credentials and an approved model are
+available.
 
 ## Example Use Case
 

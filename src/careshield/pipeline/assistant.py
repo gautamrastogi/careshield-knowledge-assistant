@@ -10,7 +10,7 @@ class CareShieldAssistant:
     def __init__(
         self,
         *,
-        model_gateway: gateway.MockModelGateway | None = None,
+        model_gateway: gateway.ModelGateway | None = None,
         embedding_model: retrieval.embeddings.HashEmbeddingModel | None = None,
         vector_backend: str = "chroma",
     ) -> None:
@@ -112,6 +112,8 @@ class CareShieldAssistant:
         )
         trace.add(step="auth_context", status="ok", detail=f"context role={context.role}")
 
+        # The vector query is intentionally after the auth context is built, so
+        # retrieval can filter with role and sensitivity metadata.
         retrieved = store.search(query=question, context=context, max_docs=max_docs)
         trace.add(
             step="vector_retrieval",

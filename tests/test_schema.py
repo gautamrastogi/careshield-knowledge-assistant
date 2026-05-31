@@ -23,3 +23,12 @@ def test_high_confidence_requires_citations() -> None:
             provider="mock",
             model="mock",
         )
+
+
+def test_bedrock_gateway_config_requires_guardrail_version() -> None:
+    """Verify Bedrock guardrail config cannot be half configured."""
+    with pytest.raises(expected_exception=pydantic.ValidationError):
+        contracts.schema.BedrockGatewayConfig(
+            model_id="anthropic.claude-3-5-sonnet-20241022-v2:0",
+            guardrail_identifier="care-guardrail",
+        )

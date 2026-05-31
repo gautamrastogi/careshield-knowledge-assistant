@@ -61,6 +61,8 @@ def parse_document_bytes(*, content: bytes, source_name: str) -> ParsedDocument:
         text = _parse_pdf(content=content)
         parser = "pypdf"
 
+    # Normalize parser output before chunking so retrieval behaves similarly
+    # across Markdown, PDF, and Word inputs.
     normalized = _normalize_text(text=text)
     if len(normalized) < 20:
         raise DocumentParseError("document did not contain enough readable text")
@@ -127,6 +129,8 @@ def build_documents_from_text(
     allowed_roles = _allowed_roles_for_sensitivity(sensitivity=sensitivity)
     chunks = chunk_text(text=text, max_words=max_words, overlap_words=overlap_words)
 
+    # Every chunk carries policy metadata because retrieval must be able to
+    # filter evidence before any model prompt is built.
     return [
         contracts.schema.Document(
             id=f"{source_id}-chunk-{index}",

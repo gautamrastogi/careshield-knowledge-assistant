@@ -24,6 +24,9 @@ def evaluate_answer(
     # without bringing a judge model into every unit test.
     grounded_terms = [term for term in GROUNDEDNESS_TERMS if term in answer.lower() and term in evidence_text]
     grounded = bool(evidence) and bool(grounded_terms)
+
+    # The policy layer decides what evidence is allowed; this eval verifies the
+    # final answer still looks cited, grounded, and safe after generation.
     pii_redacted = not pii.contains_pii(text=answer)
     policy_safe = bool(evidence)
     checks = [citations_present, grounded, pii_redacted, policy_safe]
